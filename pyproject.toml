@@ -1,3 +1,12 @@
 [build-system]
 requires = ["setuptools", "wheel"]
 buld-backend = "setuptools.build_meta"
+
+[tool.poetry]
+name = "language_modeling_with_boxes"
+version = "0.1.0"
+description = "packages of word2box"
+authors = ["iesl"]
+packages = [
+    { include = "language_modeling_with_boxes", from = "src" }
+]
