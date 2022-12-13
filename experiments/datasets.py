@@ -19,13 +19,17 @@ class TrainedAllVocabDataset(Dataset):
     ):
         super().__init__()
         self.vocab_stoi = vocab_stoi
+        self.vocab_ids = [v_id for v_id in self.vocab_stoi.values()]
+        # special_token = [0, 1, 2, 3, 4]
+        # for token in special_token: self.vocab_ids.remove(token)
+        self.vocab_ids = LongTensor(self.vocab_ids)
         self.model = model
 
 
-    def __getitem__(self) -> LongTensor:
+    def __getitem__(self, idx) -> LongTensor:
         with torch.no_grad():
-            vocab_ids = LongTensor([v_id for v_id in self.vocab_stoi.values()])
-            all_boxes: BoxTensor = self.model.embeddings_word(vocab_ids)
+            # Embedding all vocab using trained model
+            all_boxes: BoxTensor = self.model.embeddings_word(self.vocab_ids[idx])
 
             # Convert TensorBox to LongTensor size of which is [len(vocab_stoi), 2, embedding_dim]
             all_zZ = torch.stack([all_boxes.z, all_boxes.Z], dim=-2)
@@ -34,5 +38,5 @@ class TrainedAllVocabDataset(Dataset):
 
 
     def __len__(self) -> int:
-        return len(self.vocab_stoi)
+        return len(self.vocab_ids)
 
