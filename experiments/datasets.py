@@ -29,14 +29,14 @@ class TrainedAllVocabDataset(Dataset):
     def __getitem__(self, idx) -> LongTensor:
         with torch.no_grad():
             # Embedding all vocab using trained model
-            all_boxes: BoxTensor = self.model.embeddings_word(self.vocab_ids[idx])
+            label: LongTensor =  self.vocab_ids[idx]
+            box: BoxTensor = self.model.embeddings_word(label)
 
             # Convert TensorBox to LongTensor size of which is [len(vocab_stoi), 2, embedding_dim]
-            all_zZ = torch.stack([all_boxes.z, all_boxes.Z], dim=-2)
+            box = torch.stack([box.z, box.Z], dim=-2)
 
-            return all_zZ
+            return {"boxes": box, "labels": label}
 
 
     def __len__(self) -> int:
         return len(self.vocab_ids)
-
