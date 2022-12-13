@@ -1,6 +1,7 @@
 import torch
 import torchtext
 from torch import Tensor, LongTensor
+from torch.utils.data import DataLoader
 import pickle, json
 import sys, os
 from typing import Union, List, Dict
@@ -11,6 +12,7 @@ from language_modeling_with_boxes.models import Word2Box, Word2Vec, Word2VecPool
 from language_modeling_with_boxes.datasets.utils import get_iter_on_device
 
 import set_operation
+from datasets import TrainedAllVocabDataset
 
 
 # 学習用データセット train.pt の中身を見る
@@ -72,9 +74,16 @@ model = Word2BoxConjunction(
 model.load_state_dict(torch.load('results/best_model.ckpt'))
 
 words = ['bank', 'river']  # 刺激語のリスト
-words_id = LongTensor([vocab_stoi[word] for word in words])  # IDのテンソルへ変換
+word_ids = LongTensor([vocab_stoi[word] for word in words])  # IDのテンソルへ変換
 
-# 共通の語
-intersection_ids = set_operation.intersection_words(words_id, TEXT, model)
+# 語彙のデータローダー
+dataloader = DataLoader(
+    dataset= TrainedAllVocabDataset(vocab_stoi, model),
+    batch_size=128,
+    shuffle=False
+)
 
-print(intersection_ids)
+# 刺激語の共通部分のboxと全ての語彙のboxとの類似度を計算
+scores, labels = set_operation.all_words_similarity(word_ids, dataloader, model)
+similar_words = [vocab_itos[label] for label in (labels).to(torch.int64)]
+print(similar_words)
