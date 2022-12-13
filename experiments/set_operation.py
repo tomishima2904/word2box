@@ -44,30 +44,67 @@ def intersection_words(
         return intersection_box
 
 
-# 語彙や訓練用データを用意（モデルのインスタンス作成のため）
-TEXT, train_iter, val_iter, test_iter, subsampling_prob = get_iter_on_device(
-    config["batch_size"],
-    config["dataset"],
-    config["model_type"],
-    config["n_gram"],
-    config["subsample_thresh"],
-    config["data_device"],
-    config["add_pad"],
-    config["eos_mask"],
-)
+def all_words_similarity(
+    word_ids: LongTensor,
+    dataloader: DataLoader,
+    model: Union[Word2Box, Word2Vec, Word2VecPooled, Word2BoxConjunction, Word2Gauss],
+    num_output: int = 100,
+) -> Tuple[LongTensor, LongTensor]:
+    """ Output most similar scores and labels
 
-# モデルのインスタンスを作成する
-model = Word2BoxConjunction(
-    TEXT=TEXT,
-    embedding_dim=config["embedding_dim"],
-    batch_size=config["batch_size"],
-    n_gram=config["n_gram"],
-    intersection_temp=config["int_temp"],
-    volume_temp=config["vol_temp"],
-    box_type=config["box_type"],
-)
+    Args:
+        words (LongTensor): 刺激語IDのリスト. List of indices of words.
+        dataloader (DataLoader): Vocabulary.
+        num_output (int, optional): Top `num_output` most similar words. Defaults to 100.
 
-# 作成したインスタンスに訓練済みモデルのパラメータを読み込む
-model.load_state_dict(torch.load('results/best_model.ckpt'))
+    Returns:
+        LongTensor: Top `num_output` scores which are the most similar to intersection box of input `words`
+        LongTensor: Top `num_output` labels which are the most similar to intersection box of input `words`
+    """
 
-# 訓練済みのモデルで集合演算を行う
+    with torch.no_grad():
+
+        intersection_box = intersection_words(word_ids, model)  # [1, 1, 2, embedding_dim]
+        all_scores = Tensor([])
+        all_labels = Tensor([])
+
+        for boxes, labels in dataloader:
+
+            # 共通部分と語彙のBoxTensorを作成
+            # Make BoxTensors
+            B = len(boxes)
+            vocab_z: Tensor = boxes[..., 0, :].unsqueeze(-2)  # [B, 1, embedding_dim]
+            vocab_Z: Tensor = boxes[..., 1, :].unsqueeze(-2)
+            vocab_boxes = BoxTensor.from_zZ(vocab_z, vocab_Z)  # [B, 1, 2, embedding_dim]
+            intersection_z = intersection_box.z.expand(B, -1, -1)  # [B, 1, embedding_dim]
+            intersection_Z = intersection_box.Z.expand(B, -1, -1)
+            repeated_intersection_box = BoxTensor.from_zZ(intersection_z, intersection_Z)  # [B, 1, 2, embedding_dim]
+
+            # 類似度を計算
+            # Calculate similarity
+            if model.intersection_temp == 0.0:
+                scores = vocab_boxes.intersection_log_soft_volume(
+                    repeated_intersection_box, temp=model.volume_temp
+                )
+            else:
+                scores = vocab_boxes.gumbel_intersection_log_volume(
+                    repeated_intersection_box,
+                    volume_temp=model.volume_temp,
+                    intersection_temp=model.intersection_temp,
+                )
+
+            scores = scores.squeeze(-1)
+            assert scores.size() == labels.size(), f"can't match size of `scores {scores.size()}` and `labels {labels.size()}`"
+            all_scores = torch.cat([all_scores, scores])
+            all_labels = torch.cat([all_labels, labels])
+
+            # scores を降順に並び替え、それに伴い labels も並び替える
+            # Sort scores and labels in descending order
+            all_scores, sorted_indices = torch.sort(all_scores, descending=True)
+            all_labels = all_labels[sorted_indices]
+
+            if len(all_scores) > num_output:
+                all_scores = all_scores[:num_output]
+                all_labels = all_labels[:num_output]
+
+    return all_scores, all_labels
