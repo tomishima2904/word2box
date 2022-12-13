@@ -1,6 +1,6 @@
 import torch
 import torchtext
-from torch import Tensor
+from torch import Tensor, LongTensor
 import pickle, json
 import sys, os
 from typing import Union, List, Dict
@@ -72,7 +72,7 @@ model = Word2BoxConjunction(
 model.load_state_dict(torch.load('results/best_model.ckpt'))
 
 words = ['bank', 'river']  # 刺激語のリスト
-words_id = Tensor([vocab_stoi[word] for word in words])  # IDのテンソルへ変換
+words_id = LongTensor([vocab_stoi[word] for word in words])  # IDのテンソルへ変換
 
 # 共通の語
 intersection_ids = set_operation.intersection_words(words_id, TEXT, model)
