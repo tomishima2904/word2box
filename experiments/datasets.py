@@ -35,7 +35,7 @@ class TrainedAllVocabDataset(Dataset):
             # Convert TensorBox to LongTensor size of which is [len(vocab_stoi), 2, embedding_dim]
             box = torch.stack([box.z, box.Z], dim=-2)
 
-            return {"boxes": box, "labels": label}
+            return box, label
 
 
     def __len__(self) -> int:
