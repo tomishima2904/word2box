@@ -1,9 +1,9 @@
 import torch
 import torchtext
-from torch import Tensor, LongTensor
+from torch import Tensor, LongTensor, IntTensor
 from torch.utils.data import DataLoader
 import sys, os
-from typing import Union, List, Dict
+from typing import Union, List, Dict, Tuple
 
 
 # モデルのリロードに必要なモジュールをインポートする
@@ -33,13 +33,13 @@ def intersection_words(
 
         # 刺激語を埋め込み表現に変換
         # Embedding words
-        word_boxes = model.embeddings_word(words)  # [num_stimuli, 2, embedding_dim]
+        word_boxes = model.embeddings_word(words)  # [len(words), 2, embedding_dim]
 
         # 共通部分の X- と X+ を算出 [embedding_dim]
         # Make an intersection box from word_boxes
-        intersection_z = torch.max(word_boxes.z, dim=-2).values
-        intersection_Z = torch.min(word_boxes.Z, dim=-2).values
-        intersection_box = BoxTensor.from_zZ(intersection_z, intersection_Z)
+        intersection_z = torch.max(word_boxes.z, dim=-2).values.unsqueeze(0).unsqueeze(0)  # [1, 1, embedding_dim]
+        intersection_Z = torch.min(word_boxes.Z, dim=-2).values.unsqueeze(0).unsqueeze(0)
+        intersection_box = BoxTensor.from_zZ(intersection_z, intersection_Z)  # [1, 1, 2, embedding_dim]
 
         return intersection_box
 
