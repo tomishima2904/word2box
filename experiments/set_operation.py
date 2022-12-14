@@ -9,31 +9,30 @@ from typing import Union, List, Dict, Tuple
 # モデルのリロードに必要なモジュールをインポートする
 # Import modules to reload trained model
 from language_modeling_with_boxes.models import Word2Box, Word2Vec, Word2VecPooled, Word2BoxConjunction, Word2Gauss
-from language_modeling_with_boxes.datasets.utils import get_iter_on_device
 from language_modeling_with_boxes.box.box_wrapper import BoxTensor
 
 
-# 訓練済みのモデルで集合演算を行う
-# Set operation using trained model
-def intersection_words(
-    words: LongTensor,
+# 複数の入力語に対する共通部分のboxを求める
+# Calculate an intersection box of input multiple words using trained model
+def intersect_multiple_box(
+    word_ids: LongTensor,
     model: Union[Word2Box, Word2Vec, Word2VecPooled, Word2BoxConjunction, Word2Gauss],
 ) -> BoxTensor:
-    """複数の刺激語のトークンの共通部分のboxを求める
+    """複数の入力語の共通部分のboxを求める
 
     Args:
-        words (LongTensor): 刺激語のidのテンソル. ex. [56, 9, 100]
-        model (Union[Word2Box, Word2Vec, Word2VecPooled, Word2BoxConjunction, Word2Gauss]): 学習済みモデル
+        words (LongTensor): 刺激語のidのテンソル. Input IDs of words.
+        model (Union[Word2Box, Word2Vec, Word2VecPooled, Word2BoxConjunction, Word2Gauss]): 学習済みモデル. Trained model.
 
     Returns:
-        BoxTensor: wordsの共通部分のbox
+        BoxTensor: word_idsの共通部分のbox. Intersection box of input words.
     """
 
     with torch.no_grad():
 
         # 刺激語を埋め込み表現に変換
         # Embedding words
-        word_boxes = model.embeddings_word(words)  # [len(words), 2, embedding_dim]
+        word_boxes = model.embeddings_word(word_ids)  # [len(word_ids), 2, embedding_dim]
 
         # 共通部分の X- と X+ を算出 [embedding_dim]
         # Make an intersection box from word_boxes
@@ -64,17 +63,17 @@ def all_words_similarity(
 
     with torch.no_grad():
 
-        intersection_box = intersection_words(word_ids, model)  # [1, 1, 2, embedding_dim]
-        all_scores = Tensor([])
-        all_labels = Tensor([])
+        intersection_box = intersect_multiple_box(word_ids, model)  # [1, 1, 2, embedding_dim]
+        all_scores = LongTensor([])
+        all_labels = LongTensor([])
 
         for boxes, labels in dataloader:
 
             # 共通部分と語彙のBoxTensorを作成
             # Make BoxTensors
             B = len(boxes)
-            vocab_z: Tensor = boxes[..., 0, :].unsqueeze(-2)  # [B, 1, embedding_dim]
-            vocab_Z: Tensor = boxes[..., 1, :].unsqueeze(-2)
+            vocab_z: LongTensor = boxes[..., 0, :].unsqueeze(-2)  # [B, 1, embedding_dim]
+            vocab_Z: LongTensor = boxes[..., 1, :].unsqueeze(-2)
             vocab_boxes = BoxTensor.from_zZ(vocab_z, vocab_Z)  # [B, 1, 2, embedding_dim]
             intersection_z = intersection_box.z.expand(B, -1, -1)  # [B, 1, embedding_dim]
             intersection_Z = intersection_box.Z.expand(B, -1, -1)
