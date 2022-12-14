@@ -1,6 +1,5 @@
 import torch
-import torchtext
-from torch import Tensor, LongTensor, IntTensor
+from torch import Tensor, LongTensor
 from torch.utils.data import DataLoader
 import sys, os
 from typing import Union, List, Dict, Tuple
@@ -19,9 +18,11 @@ def intersect_multiple_box(
     model: Union[Word2Box, Word2Vec, Word2VecPooled, Word2BoxConjunction, Word2Gauss],
 ) -> BoxTensor:
     """複数の入力語の共通部分のboxを求める
+    box_wrapper.BoxTensor の _intersection を参考にした.
+    This func refers to box_wrapper.BoxTensor._intersection
 
     Args:
-        words (LongTensor): 刺激語のidのテンソル. Input IDs of words.
+        word_ids (LongTensor): 刺激語のidのテンソル. Input IDs of words.
         model (Union[Word2Box, Word2Vec, Word2VecPooled, Word2BoxConjunction, Word2Gauss]): 学習済みモデル. Trained model.
 
     Returns:
@@ -34,10 +35,38 @@ def intersect_multiple_box(
         # Embedding words
         word_boxes = model.embeddings_word(word_ids)  # [len(word_ids), 2, embedding_dim]
 
-        # 共通部分の X- と X+ を算出 [embedding_dim]
+        gumbel_beta: float = model.intersection_temp
+
+        if not gumbel_beta == 0.0: bayesian = True
+
+        # 共通部分の box を算出
         # Make an intersection box from word_boxes
-        intersection_z = torch.max(word_boxes.z, dim=-2).values.unsqueeze(0).unsqueeze(0)  # [1, 1, embedding_dim]
-        intersection_Z = torch.min(word_boxes.Z, dim=-2).values.unsqueeze(0).unsqueeze(0)
+        if bayesian:
+            t1_z = word_boxes.z[0]  # [embedding_dim]
+            t1_Z = word_boxes.Z[0]
+
+            for t2_z, t2_Z in zip(word_boxes.z[1:], word_boxes.Z[1:]):
+                try:
+                    z = gumbel_beta * torch.logaddexp(
+                        t1_z / gumbel_beta, t2_z / gumbel_beta
+                    )
+                    t1_z = torch.max(z, torch.max(t1_z, t2_z))
+                    Z = -gumbel_beta * torch.logaddexp(
+                        -t1_Z / gumbel_beta, -t2_Z / gumbel_beta
+                    )
+                    t1_Z = torch.min(Z, torch.min(t1_Z, t2_Z))
+                except Exception as e:
+                    print("Gumbel intersection is not possible")
+                    breakpoint()
+            intersection_z = t1_z  # [embedding_dim]
+            intersection_Z = t1_Z
+
+        else:
+            intersection_z = torch.max(word_boxes.z, dim=-2).values  # [embedding_dim]
+            intersection_Z = torch.min(word_boxes.Z, dim=-2).values
+
+        intersection_z = intersection_z.unsqueeze(0).unsqueeze(0)  # [1, 1, embedding_dim]
+        intersection_Z = intersection_Z.unsqueeze(0).unsqueeze(0)
         intersection_box = BoxTensor.from_zZ(intersection_z, intersection_Z)  # [1, 1, 2, embedding_dim]
 
         return intersection_box
@@ -49,7 +78,7 @@ def all_words_similarity(
     model: Union[Word2Box, Word2Vec, Word2VecPooled, Word2BoxConjunction, Word2Gauss],
     num_output: int = 100,
 ) -> Tuple[LongTensor, LongTensor]:
-    """ Output most similar scores and labels
+    """ Output the most `num_output` similar scores and labels to box of input words
 
     Args:
         words (LongTensor): 刺激語IDのリスト. List of indices of words.
@@ -98,7 +127,7 @@ def all_words_similarity(
             all_labels = torch.cat([all_labels, labels])
 
             # scores を降順に並び替え、それに伴い labels も並び替える
-            # Sort scores and labels in descending order
+            # Sort scores in descending order, also sort labels along with scores
             all_scores, sorted_indices = torch.sort(all_scores, descending=True)
             all_labels = all_labels[sorted_indices]
 
