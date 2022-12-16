@@ -6,16 +6,16 @@ from typing import List, Tuple, Dict, Any, Union
 
 
 # read .csv
-def csv_reader(path:str, encoding='utf-8') -> pd.DataFrame:
+def csv_reader(path:str, header=None, encoding='utf-8') -> pd.DataFrame:
     try:
-        df = pd.read_csv(path, header=0, encoding=encoding, engine="python")
+        df = pd.read_csv(path, header=header, encoding=encoding, engine="python")
     except:
-        df = pd.read_csv(path, header=0, engine="python")
+        df = pd.read_csv(path, header=header, engine="python")
     return df
 
 
 # write .csv with header
-def csv_writer(path:str, data:list, header:list=None, encoding='utf-8') -> None:
+def csv_writer(path:str, data:List, header:List=None, encoding='utf-8') -> None:
     with open(path, 'w', newline="",  encoding=encoding) as f:
         writer = csv.writer(f)
         if type(header)==str: writer.writerow(header)
@@ -24,7 +24,7 @@ def csv_writer(path:str, data:list, header:list=None, encoding='utf-8') -> None:
 
 
 # read .tsv
-def tsv_reader(path:str, header:list=None, encoding='utf-8') -> pd.DataFrame:
+def tsv_reader(path:str, header:List=None, encoding='utf-8') -> pd.DataFrame:
     try:
         df = pd.read_csv(path, header=header, encoding=encoding, engine="python", delimiter='\t')
     except:
@@ -33,7 +33,7 @@ def tsv_reader(path:str, header:list=None, encoding='utf-8') -> pd.DataFrame:
 
 
 # write .tsv with header
-def tsv_writer(path:str, data:list, header:list=None, encoding='utf-8') -> None:
+def tsv_writer(path:str, data:List, header:List=None, encoding='utf-8') -> None:
     with open(path, 'w', newline="",  encoding=encoding) as f:
         writer = csv.writer(f, delimiter='\t')
         if type(header)==str: writer.writerow(header)
@@ -55,7 +55,7 @@ def json_writer(path:str, data:dict, encoding='utf-8') -> None:
 
 
 # read .pickle
-def pickle_reader(path:str) -> Union[dict, list, pd.DataFrame]:
+def pickle_reader(path:str) -> Any:
     with open(path, 'rb') as f:
         any_type_instance = pickle.load(f)
     return any_type_instance
