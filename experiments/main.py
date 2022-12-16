@@ -4,6 +4,7 @@ from torch import Tensor, LongTensor
 from torch.utils.data import DataLoader
 import pickle, json
 import sys, os
+from tqdm import tqdm
 from typing import Union, List, Dict
 
 
@@ -12,7 +13,9 @@ from language_modeling_with_boxes.models import Word2Box, Word2Vec, Word2VecPool
 from language_modeling_with_boxes.datasets.utils import get_iter_on_device
 
 import set_operation
+from utils.file_handler import *
 from datasets import TrainedAllVocabDataset
+from vocab_library import VocabLibrary
 
 
 # 学習用データセット train.pt の中身を見る
@@ -20,7 +23,8 @@ train_tokenized = torch.load("./data/ptb/train.pt")
 
 # itos (IDから文字列) の辞書を作成
 vocab_stoi = json.load(open("./data/ptb/vocab_stoi.json", "r"))
-vocab_itos = [k for k, v in sorted(vocab_stoi.items(), key=lambda item: item[1])]
+vocab_libs = VocabLibrary(vocab_stoi)
+vocab_itos = vocab_libs.vocab_itos
 
 # 保存してあるモデルと同じパラメータを設定する
 config = {
@@ -74,7 +78,7 @@ model = Word2BoxConjunction(
 model.load_state_dict(torch.load('results/best_model.ckpt'))
 
 words = ['bank', 'river']  # 刺激語のリスト
-word_ids = LongTensor([vocab_stoi[word] for word in words])  # IDのテンソルへ変換
+word_ids = vocab_libs.stoi_converter(words)  # IDのテンソルへ変換
 
 # 語彙のデータローダー
 dataloader = DataLoader(
@@ -83,7 +87,33 @@ dataloader = DataLoader(
     shuffle=False
 )
 
+# 評価用データセットをロード
+datasets_dir = 'data/qualitative_datasets'
+dataset_name = 'intersection_2.csv'
+eval_dataframe = csv_reader(f'{datasets_dir}/{dataset_name}')
+eval_words_list: List = eval_dataframe.to_numpy().tolist()
+eval_ids_list: LongTensor = vocab_libs.stoi_converter(eval_words_list)
+assert len(eval_words_list) == len(eval_ids_list), f"cat't match the length of `words_list` {len(eval_words_list)} and `ids_list` {len(eval_ids_list)}"
+
 # 刺激語の共通部分のboxと全ての語彙のboxとの類似度を計算
-scores, labels = set_operation.all_words_similarity(word_ids, dataloader, model)
-similar_words = [vocab_itos[label] for label in (labels).to(torch.int64)]
-print(similar_words)
+num_stimuli = eval_ids_list.size(-1)
+header = []
+for i in range(num_stimuli): header.append(f"stimulus_{i+1}")
+for i in range(num_stimuli): header.append(f"id_{i+1}")
+header.extend(["labels", "scores"])
+header = tuple(header)
+results = [header]
+for stimuli, stim_ids in tqdm(zip(eval_words_list, eval_ids_list), total=len(eval_words_list)):
+    result = []
+    result.extend(stimuli)
+    scores, labels = set_operation.all_words_similarity(stim_ids, dataloader, model)
+    result.extend(stim_ids.numpy().tolist())
+    similar_words = [vocab_itos[label] for label in (labels).to(torch.int64)]
+    result.append(similar_words)
+    result.append(scores.numpy().tolist())
+    results.append(tuple(result))
+
+# 結果を出力
+results_dir = "results/tmp"
+makedirs(results_dir)
+csv_writer(path=f"{results_dir}/tmp_{dataset_name}", data=results)
