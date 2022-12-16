@@ -66,3 +66,9 @@ def pickle_writer(path:str, data:Any) -> None:
     with open(path, 'wb') as f:
         pickle.dump(data, f)
     print(f"Successfully dumped {path} !")
+
+
+# make dir if not exists
+def makedirs(path:str):
+    if not os.path.isdir(path):
+        os.makedirs(path)
