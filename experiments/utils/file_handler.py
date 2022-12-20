@@ -72,3 +72,11 @@ def pickle_writer(path:str, data:Any) -> None:
 def makedirs(path:str):
     if not os.path.isdir(path):
         os.makedirs(path)
+
+
+def dategetter() -> str:
+    t_delta = datetime.timedelta(hours=9)
+    JST = datetime.timezone(t_delta, 'JST')
+    now = datetime.datetime.now(JST)
+    date_time = now.strftime('%y%m%d%H%M%S')
+    return date_time
