@@ -28,7 +28,7 @@ vocab_itos = vocab_libs.vocab_itos
 
 
 # 保存してあるモデルと同じパラメータを設定する
-date_time = 221220211515
+date_time = 221220212533
 saved_dir = f"results/{str(date_time)}"
 config = json_reader(f"{saved_dir}/config.json")
 

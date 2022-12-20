@@ -203,7 +203,7 @@ class IntOrPercent(click.ParamType):
 @click.option("--cuda / --no_cuda", default=True, help="Enable/ Disable GPU")
 @click.option(
     "--save_model / --no_save_model",
-    default=False,
+    default=True,
     help="whether or not to save the best model",
 )
 @click.option(
