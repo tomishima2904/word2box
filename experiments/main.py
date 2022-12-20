@@ -28,7 +28,7 @@ vocab_itos = vocab_libs.vocab_itos
 
 
 # 保存してあるモデルと同じパラメータを設定する
-date_time = 202201234567
+date_time = 221220211515
 saved_dir = f"results/{str(date_time)}"
 config = json_reader(f"{saved_dir}/config.json")
 
@@ -56,7 +56,8 @@ model = Word2BoxConjunction(
 )
 
 # 作成したインスタンスに訓練済みモデルのパラメータを読み込む
-model.load_state_dict(torch.load(f"{saved_dir}/best_model.ckpt['model_state_dict']"))
+model_info = torch.load(f"{saved_dir}/best_model.ckpt")
+model.load_state_dict(model_info['model_state_dict'])
 
 words = ['bank', 'river']  # 刺激語のリスト
 word_ids = vocab_libs.stoi_converter(words)  # IDのテンソルへ変換
@@ -70,7 +71,7 @@ dataloader = DataLoader(
 
 # 評価用データセットをロード
 datasets_dir = 'data/qualitative_datasets'
-dataset_name = 'intersection_2.csv'
+dataset_name = 'words_1.csv'
 eval_dataframe = csv_reader(f'{datasets_dir}/{dataset_name}')
 eval_words_list: List = eval_dataframe.to_numpy().tolist()
 eval_ids_list: LongTensor = vocab_libs.stoi_converter(eval_words_list)
