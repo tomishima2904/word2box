@@ -31,6 +31,8 @@ def intersect_multiple_box(
 
     with torch.no_grad():
 
+        model.eval()
+
         # 刺激語を埋め込み表現に変換
         # Embedding words
         word_boxes = model.embeddings_word(word_ids)  # [len(word_ids), 2, embedding_dim]
