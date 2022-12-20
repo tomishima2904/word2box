@@ -26,30 +26,11 @@ vocab_stoi = json.load(open("./data/ptb/vocab_stoi.json", "r"))
 vocab_libs = VocabLibrary(vocab_stoi)
 vocab_itos = vocab_libs.vocab_itos
 
+
 # 保存してあるモデルと同じパラメータを設定する
-config = {
-    "batch_size": 4096,
-    "box_type": "BoxTensor",
-    "data_device": "gpu",
-    "dataset": "ptb",
-    "embedding_dim": 64,
-    "eos_mask": True,
-    "eval_file": "../data/similarity_datasets/",
-    "int_temp": 1.9678289474987882,
-    "log_frequency": 10,
-    "loss_fn": "max_margin",
-    "lr": 0.004204091643267762,
-    "margin": 5,
-    "model_type": "Word2BoxConjunction",
-    "n_gram": 5,
-    "negative_samples": 2,
-    "num_epochs": 10,
-    "subsample_thresh": 0.001,
-    "vol_temp": 0.33243242379830407,
-    "save_model": "",
-    "add_pad": "",
-    "save_dir": "results",
-}
+date_time = 202201234567
+saved_dir = f"results/{str(date_time)}"
+config = json_reader(f"{saved_dir}/config.json")
 
 # 語彙や訓練用データを用意（モデルのインスタンス作成のため）
 TEXT, train_iter, val_iter, test_iter, subsampling_prob = get_iter_on_device(
@@ -75,7 +56,7 @@ model = Word2BoxConjunction(
 )
 
 # 作成したインスタンスに訓練済みモデルのパラメータを読み込む
-model.load_state_dict(torch.load('results/best_model.ckpt'))
+model.load_state_dict(torch.load(f"{saved_dir}/best_model.ckpt['model_state_dict']"))
 
 words = ['bank', 'river']  # 刺激語のリスト
 word_ids = vocab_libs.stoi_converter(words)  # IDのテンソルへ変換
@@ -114,6 +95,4 @@ for stimuli, stim_ids in tqdm(zip(eval_words_list, eval_ids_list), total=len(eva
     results.append(tuple(result))
 
 # 結果を出力
-results_dir = "results/tmp"
-makedirs(results_dir)
-csv_writer(path=f"{results_dir}/tmp_{dataset_name}", data=results)
+csv_writer(path=f"{saved_dir}/{date_time}_{dataset_name}", data=results)
