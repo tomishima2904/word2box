@@ -172,7 +172,7 @@ cython_debug/
 #.idea/
 
 # End of https://www.toptal.com/developers/gitignore/api/django
-test.py
+test*.py
 results/
 run.sh
 data/ptbvocab_freq.json
