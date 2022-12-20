@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.autograd import Variable
 
-import csv
+import csv, json
 import numpy as np
 from pathlib import Path
 from scipy.stats import spearmanr
@@ -11,6 +11,7 @@ from tqdm import tqdm
 from xopen import xopen
 import os
 import pprint
+import time
 
 from .loss import nll, nce, max_margin
 from .negative_sampling import RandomNegativeCBOW, RandomNegativeSkipGram
@@ -137,6 +138,8 @@ class TrainerWordSimilarity(Trainer):
         optimizer = torch.optim.Adam(params=parameters, lr=self.lr)
         metric = {}
         best_simlex_ws = -1
+        all_results = {"losses": [], "test_scores": []}
+        start_time = time.time()
         ## Setting Up the loss function
         for epoch in tqdm(range(num_epochs)):
             epoch_loss = []
@@ -212,10 +215,22 @@ class TrainerWordSimilarity(Trainer):
                     )
 
                     if save_model:
-                        model.save_checkpoint(Path(path) / "model.ckpt")
-                        # savethe best hyperparameter
+                        model.save_checkpoint(
+                            Path(path) / "model.ckpt",
+                            epoch=epoch,
+                            optimizer=optimizer,
+                            loss=np.mean(epoch_loss),
+                            simlex_ws=simlex_ws
+                        )
+                                # savethe best hyperparameter
                         if simlex_ws == best_simlex_ws:
-                            model.save_checkpoint(Path(path) / "best_model.ckpt")
+                            model.save_checkpoint(
+                                Path(path) / "best_model.ckpt",
+                                epoch=epoch,
+                                optimizer=optimizer,
+                                loss=np.mean(epoch_loss),
+                                simlex_ws=simlex_ws
+                            )
 
                     model.train()
 
@@ -238,11 +253,29 @@ class TrainerWordSimilarity(Trainer):
             )
 
             if save_model:
-                model.save_checkpoint(Path(path) / "model.ckpt")
+                model.save_checkpoint(
+                    Path(path) / "model.ckpt",
+                    epoch=epoch,
+                    optimizer=optimizer,
+                    loss=np.mean(epoch_loss),
+                    simlex_ws=simlex_ws
+                )
                 # savethe best hyperparameter
                 if simlex_ws > best_simlex_ws:
-                    model.save_checkpoint(Path(path) / "best_model.ckpt")
+                    model.save_checkpoint(
+                        Path(path) / "best_model.ckpt",
+                        epoch=epoch,
+                        optimizer=optimizer,
+                        loss=np.mean(epoch_loss),
+                        simlex_ws=simlex_ws
+                    )
 
+            all_results["losses"].append(np.mean(epoch_loss))
+            all_results["test_scores"].append(simlex_ws)
+            all_results["train_time"] = time.time() - start_time
+
+        with open(Path(path) / "epoch_info.json", 'w', encoding='utf-8') as f:
+            json.dump(all_results, f, ensure_ascii=False, indent=4)
         print("Model trained.")
         print("Output saved.")
 

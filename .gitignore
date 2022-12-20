@@ -178,3 +178,4 @@ run.sh
 data/ptbvocab_freq.json
 data/ptbvocab_stoi.json
 tmp/
+nohup.out
