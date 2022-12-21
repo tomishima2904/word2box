@@ -219,7 +219,7 @@ class TrainerWordSimilarity(Trainer):
                     if save_model:
                         model.save_checkpoint(
                             Path(path) / "model.ckpt",
-                            epoch=epoch,
+                            epoch=epoch+1,
                             optimizer=optimizer,
                             loss=np.mean(epoch_loss),
                             simlex_ws=simlex_ws
@@ -228,7 +228,7 @@ class TrainerWordSimilarity(Trainer):
                         if simlex_ws == best_simlex_ws:
                             model.save_checkpoint(
                                 Path(path) / "best_model.ckpt",
-                                epoch=epoch,
+                                epoch=epoch+1,
                                 optimizer=optimizer,
                                 loss=np.mean(epoch_loss),
                                 simlex_ws=simlex_ws
@@ -257,7 +257,7 @@ class TrainerWordSimilarity(Trainer):
             if save_model:
                 model.save_checkpoint(
                     Path(path) / "model.ckpt",
-                    epoch=epoch,
+                    epoch=epoch+1,
                     optimizer=optimizer,
                     loss=np.mean(epoch_loss),
                     simlex_ws=simlex_ws
@@ -266,7 +266,7 @@ class TrainerWordSimilarity(Trainer):
                 if simlex_ws > best_simlex_ws:
                     model.save_checkpoint(
                         Path(path) / "best_model.ckpt",
-                        epoch=epoch,
+                        epoch=epoch+1,
                         optimizer=optimizer,
                         loss=np.mean(epoch_loss),
                         simlex_ws=simlex_ws
@@ -276,8 +276,8 @@ class TrainerWordSimilarity(Trainer):
             all_results["losses"].append(np.mean(epoch_loss))
             all_results["test_scores"].append(simlex_ws)
             all_results["train_time"] = time.time() - start_time
-            writer.add_scalar("loss", all_results["losses"][-1], epoch)
-            writer.add_scalar("test_score", all_results["test_scores"][-1], epoch)
+            writer.add_scalar("loss", all_results["losses"][-1], epoch+1)
+            writer.add_scalar("test_score", all_results["test_scores"][-1], epoch+1)
 
         writer.close()
         with open(Path(path) / "epoch_summary.json", 'w', encoding='utf-8') as f:
