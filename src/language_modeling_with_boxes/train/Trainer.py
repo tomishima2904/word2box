@@ -262,7 +262,7 @@ class TrainerWordSimilarity(Trainer):
                     loss=np.mean(epoch_loss),
                     simlex_ws=simlex_ws
                 )
-                # savethe best hyperparameter
+                # save the best hyperparameter
                 if simlex_ws > best_simlex_ws:
                     model.save_checkpoint(
                         Path(path) / "best_model.ckpt",
