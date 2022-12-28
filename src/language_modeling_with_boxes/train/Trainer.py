@@ -279,6 +279,8 @@ class TrainerWordSimilarity(Trainer):
             writer.add_scalar("loss", all_results["losses"][-1], epoch+1)
             writer.add_scalar("test_score", all_results["test_scores"][-1], epoch+1)
 
+        # Logging embeddings
+        writer.add_embedding(model.embeddings_word.weight, self.vocab.itos, global_step=epoch+1, tag="embeddings_word")
         writer.close()
         with open(Path(path) / "epoch_summary.json", 'w', encoding='utf-8') as f:
             json.dump(all_results, f, ensure_ascii=False, indent=4)
