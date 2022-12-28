@@ -65,7 +65,7 @@ word_ids = vocab_libs.stoi_converter(words)  # IDのテンソルへ変換
 # 語彙のデータローダー
 dataloader = DataLoader(
     dataset= TrainedAllVocabDataset(vocab_stoi, model),
-    batch_size=128,
+    batch_size=4096,
     shuffle=False
 )
 

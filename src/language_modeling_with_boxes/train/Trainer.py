@@ -12,6 +12,7 @@ from xopen import xopen
 import os
 import pprint
 import time
+from tensorboardX import SummaryWriter
 
 from .loss import nll, nce, max_margin
 from .negative_sampling import RandomNegativeCBOW, RandomNegativeSkipGram
@@ -139,6 +140,7 @@ class TrainerWordSimilarity(Trainer):
         metric = {}
         best_simlex_ws = -1
         all_results = {"losses": [], "test_scores": []}
+        writer = SummaryWriter(Path(path) / "myexp")
         start_time = time.time()
         ## Setting Up the loss function
         for epoch in tqdm(range(num_epochs)):
@@ -217,7 +219,7 @@ class TrainerWordSimilarity(Trainer):
                     if save_model:
                         model.save_checkpoint(
                             Path(path) / "model.ckpt",
-                            epoch=epoch,
+                            epoch=epoch+1,
                             optimizer=optimizer,
                             loss=np.mean(epoch_loss),
                             simlex_ws=simlex_ws
@@ -226,7 +228,7 @@ class TrainerWordSimilarity(Trainer):
                         if simlex_ws == best_simlex_ws:
                             model.save_checkpoint(
                                 Path(path) / "best_model.ckpt",
-                                epoch=epoch,
+                                epoch=epoch+1,
                                 optimizer=optimizer,
                                 loss=np.mean(epoch_loss),
                                 simlex_ws=simlex_ws
@@ -255,26 +257,32 @@ class TrainerWordSimilarity(Trainer):
             if save_model:
                 model.save_checkpoint(
                     Path(path) / "model.ckpt",
-                    epoch=epoch,
+                    epoch=epoch+1,
                     optimizer=optimizer,
                     loss=np.mean(epoch_loss),
                     simlex_ws=simlex_ws
                 )
-                # savethe best hyperparameter
+                # save the best hyperparameter
                 if simlex_ws > best_simlex_ws:
                     model.save_checkpoint(
                         Path(path) / "best_model.ckpt",
-                        epoch=epoch,
+                        epoch=epoch+1,
                         optimizer=optimizer,
                         loss=np.mean(epoch_loss),
                         simlex_ws=simlex_ws
                     )
 
+            # Output loss and test_score as .json and tensorboard
             all_results["losses"].append(np.mean(epoch_loss))
             all_results["test_scores"].append(simlex_ws)
             all_results["train_time"] = time.time() - start_time
+            writer.add_scalar("loss", all_results["losses"][-1], epoch+1)
+            writer.add_scalar("test_score", all_results["test_scores"][-1], epoch+1)
 
-        with open(Path(path) / "epoch_info.json", 'w', encoding='utf-8') as f:
+        # Logging embeddings
+        writer.add_embedding(model.embeddings_word.weight, self.vocab.itos, global_step=epoch+1, tag="embeddings_word")
+        writer.close()
+        with open(Path(path) / "epoch_summary.json", 'w', encoding='utf-8') as f:
             json.dump(all_results, f, ensure_ascii=False, indent=4)
         print("Model trained.")
         print("Output saved.")
