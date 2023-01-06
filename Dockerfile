@@ -26,7 +26,7 @@ RUN groupadd --gid $USER_GID $USERNAME \
 RUN apt-get -y update
 RUN apt-get -y upgrade
 RUN apt-get -y install python3 python3-pip
-RUN apt-get -y install nano wget curl vim
+RUN apt-get -y install nano wget curl vim file
 
 WORKDIR /mnt/tomishima2904/word2box/
 

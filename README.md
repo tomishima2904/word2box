@@ -48,3 +48,27 @@ bin/language-modeling-with-boxes train \
  --add_pad \
  -- save_dir `Please change this to your dataset` 
 ```
+
+# 日本語版Word2Box
+
+## Install Mecab
+1. Install MeCab and dictionary for MeCab following [here](http://taku910.github.io/mecab/).
+1. Install mecab-ipadic-NEologd following [here](https://github.com/neologd/mecab-ipadic-neologd#preparation-of-installing).
+## Pre-process
+1. Download Wikipedia Cirrussearch dump file from [here](https://dumps.wikimedia.org/other/cirrussearch/).
+
+    Ex.
+    ```
+    wget https://dumps.wikimedia.org/other/cirrussearch/20230102/jawikisource-20230102-cirrussearch-content.json.gz
+    ```
+
+1. Preprocess the downloaded dump file.
+
+    Ex.
+    ```
+    python preprocesser/make_corpus.py \
+    --cirrus_file data/jawiki/jawikisource-20230102-cirrussearch-content.json.gz \
+    --output_file data/jawiki/jawiki_mecab.txt \
+    --tokenizer='mecab' \
+    --tokenizer_option='-d /usr/local/lib/mecab/dic/mecab-ipadic-neologd'
+    ```

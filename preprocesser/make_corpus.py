@@ -60,10 +60,10 @@ def main(args):
                 continue
 
             title = json_item['title']
-            text = regex_spaces.sub(' ', json_item['text'])
+            text = regex_spaces.sub(' ', json_item['text'])  # Substitute any kind of spaces (ex. \t) to ' ' (blank)
 
             hyperlinks = dict()
-            title_without_paren = regex_title_paren.sub('', title)
+            title_without_paren = regex_title_paren.sub('', title)  # Remove () and words between ()
             hyperlinks.setdefault(title_without_paren, title)
             for match in regex_hyperlink.finditer(json_item['source_text']):
                 if '|' in match.group(1):
