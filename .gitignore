@@ -179,3 +179,4 @@ data/ptbvocab_freq.json
 data/ptbvocab_stoi.json
 tmp/
 nohup.out
+*jawikisource-*-cirrussearch-content.json.gz
