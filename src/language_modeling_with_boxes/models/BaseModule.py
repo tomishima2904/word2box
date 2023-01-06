@@ -17,8 +17,15 @@ class BaseModule(nn.Module):
         self.load_state_dict(torch.load(os.path.join(path), map_location="cpu"))
         self.eval()
 
-    def save_checkpoint(self, path):
-        torch.save(self.state_dict(), path)
+    def save_checkpoint(self, path, epoch, optimizer, loss, simlex_ws):
+        # Not only model.state_dict, other params can be saved
+        torch.save({
+            'epoch': epoch,
+            'model_state_dict': self.state_dict(),
+            'opt_state_dict': optimizer.state_dict(),
+            'loss': loss,
+            'simlex-ws': simlex_ws
+        }, path)
 
     def load_parameters(self, path):
         f = open(path, "r")

@@ -1,5 +1,6 @@
 import torch
 import random
+import datetime, json, os
 
 from .Trainer import Trainer, TrainerWordSimilarity
 
@@ -117,6 +118,21 @@ def training(config):
             similarity_datasets_dir=config["eval_file"],
             subsampling_prob=None,  # pass: subsampling_prob, when you want to adjust neg_sampling distn
         )
+
+    # Get datetime for name of dir
+    t_delta = datetime.timedelta(hours=9)
+    JST = datetime.timezone(t_delta, 'JST')
+    now = datetime.datetime.now(JST)
+    date_time = now.strftime('%y%m%d%H%M%S')
+
+    # Make dir
+    config['save_dir'] = f"{config['save_dir']}/{date_time}"
+    if not os.path.isdir(config['save_dir']):
+        os.makedirs(config['save_dir'])
+
+    # Dump config as .json
+    with open(f"{config['save_dir']}/config.json", 'w', encoding='utf-8') as f:
+        json.dump(config, f, ensure_ascii=False, indent=4)
 
     trainer.train_model(
         model=model,
