@@ -65,10 +65,10 @@ def load_vocab(data_dir: Union[str, Path]):
             text_field=TEXT,
         )
         TEXT.build_vocab(train_split[0])
-        vocab_stoi_file = open(data_dir + "vocab_stoi.json", "w")
-        vocab_freq_file = open(data_dir + "vocab_freq.json", "w")
-        json.dump(TEXT.vocab.stoi, vocab_stoi_file)
-        json.dump(TEXT.vocab.freqs, vocab_freq_file)
+        vocab_stoi_file = open(data_dir + "/vocab_stoi.json", "w", encoding="utf-8")
+        vocab_freq_file = open(data_dir + "/vocab_freq.json", "w", encoding="utf-8")
+        json.dump(TEXT.vocab.stoi, vocab_stoi_file, ensure_ascii=False)
+        json.dump(TEXT.vocab.freqs, vocab_freq_file, ensure_ascii=False)
         vocab_stoi_file.close()
         vocab_freq_file.close()
     return vocab_stoi, vocab_freq
@@ -97,6 +97,7 @@ def load_tokenizer(dataset):
 def load_train_data_as_tensor(dataset):
     data_dir = "./data/" + dataset + "/"
     tensor_file = Path(data_dir + "train.pt")
+    ex_tensor_file = Path(data_dir + "example.pt")
     if tensor_file.exists():
         return torch.load(tensor_file)
     else:
@@ -104,7 +105,8 @@ def load_train_data_as_tensor(dataset):
             list(itertools.chain.from_iterable(load_tokenizer(dataset)))
         )
         torch.save(train_tensor, tensor_file)
-    return train_tensor
+        torch.save(train_tensor[:1000000], ex_tensor_file)
+        print("train.pt has been dumped successfully")
 
 
 def get_iter_on_device(
