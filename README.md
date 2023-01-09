@@ -68,7 +68,7 @@ bin/language-modeling-with-boxes train \
     ```
     python preprocesser/make_corpus.py \
     --cirrus_file data/jawiki/jawikisource-20230102-cirrussearch-content.json.gz \
-    --output_file data/jawiki/jawiki_mecab.txt \
+    --output_file data/jawiki/train.txt \
     --tokenizer='mecab' \
     --tokenizer_option='-d /usr/local/lib/mecab/dic/mecab-ipadic-neologd'
     ```
