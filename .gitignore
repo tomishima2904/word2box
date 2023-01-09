@@ -181,3 +181,5 @@ tmp/
 nohup.out
 *jawikisource-*-cirrussearch-content.json.gz
 data/jawiki/
+data/w2v_ja/
+*.~lock*
