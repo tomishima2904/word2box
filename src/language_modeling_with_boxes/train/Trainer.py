@@ -95,6 +95,7 @@ class TrainerWordSimilarity(Trainer):
         loss_fn="max_margin",
         negative_samples=5,
         model_mode="CBOW",
+        lang="en",
         log_frequency=1000,
         margin=0.0,
         similarity_datasets_dir=None,
@@ -114,6 +115,7 @@ class TrainerWordSimilarity(Trainer):
         self.similarity_datasets_dir = similarity_datasets_dir
         self.margin = margin
         self.loss_fn = criterions[loss_fn]
+        self.lang = lang
         # If subsampling has been done earlier then word count must have been changed
         # This is an expected word count based on the subsampling prob parameters.
         if subsampling_prob != None:
@@ -138,6 +140,7 @@ class TrainerWordSimilarity(Trainer):
         parameters = filter(lambda p: p.requires_grad, model.parameters())
         optimizer = torch.optim.Adam(params=parameters, lr=self.lr)
         metric = {}
+        eval_dataset = "En-Simlex-999.Txt" if self.lang == "en" else "Jwsan-1400-Asso.Tsv"
         best_simlex_ws = -1
         all_results = {"losses": [], "test_scores": []}
         writer = SummaryWriter(Path(path) / "myexp")
@@ -207,8 +210,8 @@ class TrainerWordSimilarity(Trainer):
                     # Update the metric for wandb login
                     metric.update(ws_metric)
 
-                    simlex_ws = metric["En-Simlex-999.Txt"]
-                    best_simlex_ws = max(metric["En-Simlex-999.Txt"], best_simlex_ws)
+                    simlex_ws = metric[eval_dataset]
+                    best_simlex_ws = max(metric[eval_dataset], best_simlex_ws)
                     metric.update({"best_simlex_ws": best_simlex_ws})
                     print(
                         "Epoch {0} | Loss: {1}| spearmanr: {2}".format(
@@ -245,7 +248,7 @@ class TrainerWordSimilarity(Trainer):
             # Update the metric
             metric.update(ws_metric)
 
-            simlex_ws = metric["En-Simlex-999.Txt"]
+            simlex_ws = metric[eval_dataset]
             best_simlex_ws = max(simlex_ws, best_simlex_ws)
             metric.update({"best_simlex_ws": best_simlex_ws})
             print(
