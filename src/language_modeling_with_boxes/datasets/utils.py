@@ -107,8 +107,9 @@ def load_train_data_as_tensor(dataset):
             list(itertools.chain.from_iterable(load_tokenizer(dataset)))
         )
         torch.save(train_tensor, tensor_file)
-        torch.save(train_tensor[:1000000], ex_tensor_file)
+        torch.save(train_tensor[:500000], ex_tensor_file)
         print("train.pt has been dumped successfully")
+    return train_tensor
 
 
 def get_iter_on_device(

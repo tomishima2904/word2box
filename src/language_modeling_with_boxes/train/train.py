@@ -111,6 +111,7 @@ def training(config):
             vocab=TEXT,
             lr=config["lr"],
             n_gram=config["n_gram"],
+            lang=config["lang"],
             loss_fn=config["loss_fn"],
             negative_samples=config["negative_samples"],
             model_mode="CBOW",
