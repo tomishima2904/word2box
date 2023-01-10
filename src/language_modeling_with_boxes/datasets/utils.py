@@ -71,6 +71,8 @@ def load_vocab(data_dir: Union[str, Path]):
         json.dump(TEXT.vocab.freqs, vocab_freq_file, ensure_ascii=False)
         vocab_stoi_file.close()
         vocab_freq_file.close()
+        vocab_stoi = TEXT.vocab.stoi
+        vocab_freq = TEXT.vocab.freqs
     return vocab_stoi, vocab_freq
 
 
