@@ -25,3 +25,18 @@ def make_vocab(args):
     vocab_stoi_file.close()
     vocab_freq_file.close()
     print("Successfully dumped vocab files !")
+
+
+def drop_words(args, max_freq=2):
+    print(f"Dropping words occurring less than {max_freq} times")
+    with open(args.output_dir + "/vocab_freq.json", "r") as f:
+        vocab_freq = json.load(f)
+        drop_words_list = [key for key, value in vocab_freq.items() if value < max_freq]
+
+    with open(args.output_dir + "/train.txt", "r") as fi, \
+         open(args.output_dir + "/dropped_train.txt", "w") as fo:
+        for line in fi:
+            text = line.split()
+            text = [word for word in text if word not in drop_words_list]
+            print(" ".join(text), file=fo)
+        print("Successfully dumped dropped train file !")

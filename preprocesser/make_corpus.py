@@ -7,7 +7,7 @@ from collections import OrderedDict
 from logzero import logger
 
 from tokenization import RegExpTokenizer, NLTKTokenizer, MeCabTokenizer
-from make_vocab import *
+from preprocesser.preprocess_utils import *
 
 
 regex_spaces = re.compile(r'\s+')
