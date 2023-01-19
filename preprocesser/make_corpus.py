@@ -7,6 +7,7 @@ from collections import OrderedDict
 from logzero import logger
 
 from tokenization import RegExpTokenizer, NLTKTokenizer, MeCabTokenizer
+from preprocess_utils import *
 
 
 regex_spaces = re.compile(r'\s+')
@@ -102,7 +103,7 @@ def main(args):
                     else:
                         cursor = end
 
-            text = ' '.join(tokenizer.tokenize(text))
+            text = ' '.join(tokenizer.tokenize(text)[:args.max_sentence_length])
 
             print(text, file=fo)
             n_processed += 1
@@ -123,8 +124,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--cirrus_file', type=str, required=True,
         help='Wikipedia Cirrussearch content dump file (.json.gz)')
-    parser.add_argument('--output_file', type=str, required=True,
-        help='output corpus file (.txt)')
+    parser.add_argument('--output_dir', type=str, required=True,
+        help='output dir (output file is train.txt)')
     parser.add_argument('--tokenizer', default='regexp',
         help='tokenizer type [regexp]')
     parser.add_argument('--do_lower_case', action='store_true',
@@ -133,5 +134,8 @@ if __name__ == "__main__":
         help='resolve redirects of entity names')
     parser.add_argument('--tokenizer_option', type=str, default='',
         help='option string passed to the tokenizer')
+    parser.add_argument('--max_sentence_length', type=int, default=9999)
     args = parser.parse_args()
-    main(args)
+    make_vocab(args)
+    replace_oov(args, renew=True)
+    make_vocab(args)

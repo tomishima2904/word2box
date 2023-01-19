@@ -85,6 +85,7 @@ class IntOrPercent(click.ParamType):
             "wikipedia_large",
             "wikipedia_lemma_large",
             "jawiki",
+            "example",
         ]
     ),
     default="ptb",
