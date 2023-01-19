@@ -59,7 +59,7 @@ bin/language-modeling-with-boxes train \
 
     Ex.
     ```
-    wget https://dumps.wikimedia.org/other/cirrussearch/20230102/jawikisource-20230102-cirrussearch-content.json.gz
+    curl -o data/jawiki/jawikisource-20221226-cirrussearch-content.json.gz https://dumps.wikimedia.org/other/cirrussearch/20221226/jawiki-20221226-cirrussearch-content.json.gz
     ```
 
 1. Preprocess the downloaded dump file.
@@ -67,8 +67,8 @@ bin/language-modeling-with-boxes train \
     Ex.
     ```
     python preprocesser/make_corpus.py \
-    --cirrus_file data/jawiki/jawikisource-20230102-cirrussearch-content.json.gz \
-    --output_file data/jawiki/train.txt \
+    --cirrus_file data/jawiki/jawikisource-20221226-cirrussearch-content.json.gz \
+    --output_dir data/jawiki \
     --tokenizer='mecab' \
     --tokenizer_option='-d /usr/local/lib/mecab/dic/mecab-ipadic-neologd'
     ```
@@ -82,7 +82,7 @@ bin/language-modeling-with-boxes train \
  --batch_size=4096 \
  --box_type=BoxTensor \
  --data_device=gpu \
- --dataset=jawiki \
+ --dataset= `jawiki` or `example` \
  --embedding_dim=64 \
  --eval_file=./data/ja_similarity_datasets/ \
  --int_temp=1.9678289474987882 \
