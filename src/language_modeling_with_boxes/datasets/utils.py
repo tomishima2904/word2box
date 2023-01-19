@@ -50,11 +50,13 @@ def load_vocab(data_dir: Union[str, Path]):
                 token, frequency = line.split()
                 vocab_stoi[token] = int(token_id)
                 vocab_freq[token] = int(frequency)
+        return vocab_stoi, vocab_freq
     elif path.isfile(data_dir + "vocab_stoi.json") and path.isfile(
         data_dir + "vocab_freq.json"
     ):
         vocab_stoi = json.load(open(data_dir + "vocab_stoi.json", "r"))
         vocab_freq = json.load(open(data_dir + "vocab_freq.json", "r"))
+        return vocab_stoi, vocab_freq
     else:
         TEXT = torchtext.data.Field()
         train_split = torchtext.datasets.LanguageModelingDataset.splits(
@@ -71,9 +73,7 @@ def load_vocab(data_dir: Union[str, Path]):
         json.dump(TEXT.vocab.freqs, vocab_freq_file, ensure_ascii=False)
         vocab_stoi_file.close()
         vocab_freq_file.close()
-        vocab_stoi = TEXT.vocab.stoi
-        vocab_freq = TEXT.vocab.freqs
-    return vocab_stoi, vocab_freq
+        return TEXT.vocab.stoi, TEXT.vocab.freqs
 
 
 def load_tokenizer(dataset):
