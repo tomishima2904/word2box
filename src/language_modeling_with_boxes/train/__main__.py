@@ -84,6 +84,8 @@ class IntOrPercent(click.ParamType):
             "wackypedia_lemma",
             "wikipedia_large",
             "wikipedia_lemma_large",
+            "jawiki",
+            "example",
         ]
     ),
     default="ptb",
@@ -105,6 +107,11 @@ class IntOrPercent(click.ParamType):
 )
 @click.option(
     "--eos_mask / --no_eos_mask", default=True, help="Enable/ Disable eos mask"
+)
+@click.option(
+    "--lang",
+    default="en",
+    help="en or ja",
 )
 
 ######  Training parameters #########
