@@ -3,6 +3,7 @@ import json
 import gzip
 import argparse
 from collections import OrderedDict
+import os
 
 import torchtext
 
@@ -27,16 +28,22 @@ def make_vocab(args):
     print("Successfully dumped vocab files !")
 
 
-def drop_words(args, max_freq=2):
-    print(f"Dropping words occurring less than {max_freq} times")
+def replace_oov(args, min_count=5, renew=False):
+    print(f"Replacing words occurring less than {min_count} times to <unk>")
     with open(args.output_dir + "/vocab_freq.json", "r") as f:
         vocab_freq = json.load(f)
-        drop_words_list = [key for key, value in vocab_freq.items() if value < max_freq]
+        # drop_words_list = [key for key, value in vocab_freq.items() if value < min_count]s
 
     with open(args.output_dir + "/train.txt", "r") as fi, \
-         open(args.output_dir + "/dropped_train.txt", "w") as fo:
+         open(args.output_dir + "/replaced_train.txt", "w") as fo:
         for line in fi:
             text = line.split()
-            text = [word for word in text if word not in drop_words_list]
+            text = [word if vocab_freq[word] >= min_count else "<unk>" for word in text]  # OOV is replaced to <unk>
             print(" ".join(text), file=fo)
-        print("Successfully dumped dropped train file !")
+        print("Successfully dumped train file !")
+
+    # If renew is true, original train file is replaced to preprocessed train file
+    if renew:
+        os.remove(args.output_dir + "/train.txt")
+        os.rename(args.output_dir + "/replaced_train.txt", args.output_dir + "/train.txt")
+        print("Renewed train file !")

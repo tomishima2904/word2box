@@ -7,7 +7,7 @@ from collections import OrderedDict
 from logzero import logger
 
 from tokenization import RegExpTokenizer, NLTKTokenizer, MeCabTokenizer
-from preprocesser.preprocess_utils import *
+from preprocess_utils import *
 
 
 regex_spaces = re.compile(r'\s+')
@@ -136,5 +136,6 @@ if __name__ == "__main__":
         help='option string passed to the tokenizer')
     parser.add_argument('--max_sentence_length', type=int, default=9999)
     args = parser.parse_args()
-    main(args)
+    make_vocab(args)
+    replace_oov(args, renew=True)
     make_vocab(args)
