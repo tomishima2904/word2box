@@ -7,12 +7,19 @@ from .Trainer import Trainer, TrainerWordSimilarity
 from ..models import Word2Box, Word2Vec, Word2VecPooled, Word2BoxConjunction, Word2Gauss
 from ..datasets.utils import get_iter_on_device
 
+import json
+
 global use_cuda
 use_cuda = torch.cuda.is_available()
 device = torch.cuda.current_device() if use_cuda else "cpu"
 
 
 def training(config):
+
+    # Load config to resume training model
+    if config["resume_train"] is not None:
+        with open(config["resume_train"] + "/config.json", "r") as f:
+            config = json.load(f)
 
     # Set the seed
     if config["seed"] is None:
