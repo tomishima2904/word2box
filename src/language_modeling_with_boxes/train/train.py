@@ -17,8 +17,8 @@ device = torch.cuda.current_device() if use_cuda else "cpu"
 def training(config):
 
     # Load config to resume training model
-    if config["resume_train"] is not None:
-        with open(config["resume_train"] + "/config.json", "r") as f:
+    if config["checkpoint"] is not None:
+        with open(config["checkpoint"] + "/config.json", "r") as f:
             config = json.load(f)
 
     # Set the seed
