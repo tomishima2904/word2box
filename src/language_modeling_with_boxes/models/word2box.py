@@ -21,7 +21,7 @@ device = 0 if use_cuda else -1
 class Word2Box(BaseModule):
     def __init__(
         self,
-        TEXT=None,
+        vocab_size=None,
         embedding_dim=50,
         batch_size=10,
         n_gram=4,
@@ -35,7 +35,7 @@ class Word2Box(BaseModule):
         # Model
         self.batch_size = batch_size
         self.n_gram = n_gram
-        self.vocab_size = len(TEXT.itos)
+        self.vocab_size = vocab_size
         self.embedding_dim = embedding_dim
 
         # Box features

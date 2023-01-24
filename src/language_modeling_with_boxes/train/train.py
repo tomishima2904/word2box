@@ -40,7 +40,7 @@ def training(config):
 
     if config["model_type"] == "Word2Box":
         model = Word2Box(
-            TEXT=TEXT,
+            vocab_size=len(TEXT.stoi),
             embedding_dim=config["embedding_dim"],
             batch_size=config["batch_size"],
             n_gram=config["n_gram"],
@@ -52,7 +52,7 @@ def training(config):
 
     elif config["model_type"] == "Word2Vec":
         model = Word2Vec(
-            TEXT=TEXT,
+            vocab_size=len(TEXT.stoi),
             embedding_dim=config["embedding_dim"],
             batch_size=config["batch_size"],
             n_gram=config["n_gram"],
@@ -60,7 +60,7 @@ def training(config):
 
     elif config["model_type"] == "Word2VecPooled":
         model = Word2VecPooled(
-            TEXT=TEXT,
+            vocab_size=len(TEXT.stoi),
             embedding_dim=config["embedding_dim"],
             batch_size=config["batch_size"],
             n_gram=config["n_gram"],
@@ -68,7 +68,7 @@ def training(config):
         )
     elif config["model_type"] == "Word2BoxConjunction":
         model = Word2BoxConjunction(
-            TEXT=TEXT,
+            vocab_size=len(TEXT.stoi),
             embedding_dim=config["embedding_dim"],
             batch_size=config["batch_size"],
             n_gram=config["n_gram"],
@@ -78,7 +78,7 @@ def training(config):
         )
     elif config["model_type"] == "Word2Gauss":
         model = Word2Gauss(
-            TEXT=TEXT,
+            vocab_size=len(TEXT.stoi),
             embedding_dim=config["embedding_dim"],
             batch_size=config["batch_size"],
             n_gram=config["n_gram"],
