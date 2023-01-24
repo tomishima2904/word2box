@@ -146,11 +146,11 @@ class TrainerWordSimilarity(Trainer):
         writer = SummaryWriter(Path(path) / "myexp")
         start_time = time.time()
         ## Setting Up the loss function
-        for epoch in tqdm(range(num_epochs)):
+        for epoch in range(start_epoch, num_epochs):
             epoch_loss = []
             model.train()
 
-            for i, batch in enumerate(tqdm(self.train_iter)):
+            for i, batch in enumerate(self.train_iter):
                 # Create negative samples for the batch
                 batch = self.to(batch, device)
                 batch = self.add_negatives(batch)

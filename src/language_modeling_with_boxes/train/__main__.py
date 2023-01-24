@@ -69,6 +69,12 @@ class IntOrPercent(click.ParamType):
     default=0,
     help="Context matrix type would be diagonal if 1 else full matrix.",
 )
+@click.option(
+    "--checkpoint",
+    type=str,
+    default=None,
+    help="If you want to resume training, input dir name where checkpoint is. Ex. `results/12345678`",
+)
 
 #######  Dataset Properties #########
 @click.option(
