@@ -32,6 +32,7 @@ def intersect_multiple_box(
     with torch.no_grad():
 
         model.eval()
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
         # 刺激語を埋め込み表現に変換
         # Embedding words
@@ -44,11 +45,13 @@ def intersect_multiple_box(
         # 共通部分の box を算出
         # Make an intersection box from word_boxes
         if bayesian:
-            t1_z = word_boxes.z[0]  # [embedding_dim]
-            t1_Z = word_boxes.Z[0]
+            t1_z = word_boxes.z[0].to(device)  # [embedding_dim]
+            t1_Z = word_boxes.Z[0].to(device)
 
             for t2_z, t2_Z in zip(word_boxes.z[1:], word_boxes.Z[1:]):
                 try:
+                    t2_z.to(device)
+                    t2_Z.to(device)
                     z = gumbel_beta * torch.logaddexp(
                         t1_z / gumbel_beta, t2_z / gumbel_beta
                     )
@@ -92,6 +95,8 @@ def all_words_similarity(
         LongTensor: Top `num_output` labels which are the most similar to intersection box of input `words`
     """
 
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
     with torch.no_grad():
 
         intersection_box = intersect_multiple_box(word_ids, model)  # [1, 1, 2, embedding_dim]
@@ -103,11 +108,11 @@ def all_words_similarity(
             # 共通部分と語彙のBoxTensorを作成
             # Make BoxTensors
             B = len(boxes)
-            vocab_z: LongTensor = boxes[..., 0, :].unsqueeze(-2)  # [B, 1, embedding_dim]
-            vocab_Z: LongTensor = boxes[..., 1, :].unsqueeze(-2)
+            vocab_z: LongTensor = boxes[..., 0, :].unsqueeze(-2).to(device)
+            vocab_Z: LongTensor = boxes[..., 1, :].unsqueeze(-2).to(device)
             vocab_boxes = BoxTensor.from_zZ(vocab_z, vocab_Z)  # [B, 1, 2, embedding_dim]
-            intersection_z = intersection_box.z.expand(B, -1, -1)  # [B, 1, embedding_dim]
-            intersection_Z = intersection_box.Z.expand(B, -1, -1)
+            intersection_z = intersection_box.z.expand(B, -1, -1).to(device)  # [B, 1, embedding_dim]
+            intersection_Z = intersection_box.Z.expand(B, -1, -1).to(device)
             repeated_intersection_box = BoxTensor.from_zZ(intersection_z, intersection_Z)  # [B, 1, 2, embedding_dim]
 
             # 類似度を計算
@@ -123,7 +128,7 @@ def all_words_similarity(
                     intersection_temp=model.intersection_temp,
                 )
 
-            scores = scores.squeeze(-1)
+            scores = scores.squeeze(-1).to('cpu').detach()
             assert scores.size() == labels.size(), f"can't match size of `scores {scores.size()}` and `labels {labels.size()}`"
             all_scores = torch.cat([all_scores, scores])
             all_labels = torch.cat([all_labels, labels])
