@@ -17,9 +17,11 @@ device = torch.cuda.current_device() if use_cuda else "cpu"
 def training(config):
 
     # Load config to resume training model
-    if config["checkpoint"] is not None:
+    if config["checkpoint"] != None:
         with open(config["checkpoint"] + "/config.json", "r") as f:
+            checkpoint = config["checkpoint"]
             config = json.load(f)
+            config["checkpoint"] = checkpoint
 
     # Set the seed
     if config["seed"] is None:
@@ -105,6 +107,7 @@ def training(config):
             margin=config["margin"],
             similarity_datasets_dir=config["eval_file"],
             subsampling_prob=None,  # pass: subsampling_prob, when you want to adjust neg_sampling distn
+            checkpoint=config["checkpoint"],
         )
     elif (
         config["model_type"] == "Word2BoxPooled"
@@ -126,6 +129,7 @@ def training(config):
             margin=config["margin"],
             similarity_datasets_dir=config["eval_file"],
             subsampling_prob=None,  # pass: subsampling_prob, when you want to adjust neg_sampling distn
+            checkpoint=config["checkpoint"],
         )
 
     # Get datetime for name of dir
@@ -135,9 +139,12 @@ def training(config):
     date_time = now.strftime('%y%m%d%H%M%S')
 
     # Make dir
-    config['save_dir'] = f"{config['save_dir']}/{date_time}"
-    if not os.path.isdir(config['save_dir']):
-        os.makedirs(config['save_dir'])
+    if config['checkpoint'] == None:
+        config['save_dir'] = f"{config['save_dir']}/{date_time}"
+        if not os.path.isdir(config['save_dir']):
+            os.makedirs(config['save_dir'])
+    else:
+        config['save_dir'] = config['checkpoint']
 
     # Dump config as .json
     with open(f"{config['save_dir']}/config.json", 'w', encoding='utf-8') as f:

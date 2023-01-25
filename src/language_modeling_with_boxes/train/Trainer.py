@@ -5,6 +5,7 @@ from torch.autograd import Variable
 
 import csv, json
 import numpy as np
+import pandas as pd
 from pathlib import Path
 from scipy.stats import spearmanr
 from tqdm import tqdm
@@ -100,6 +101,7 @@ class TrainerWordSimilarity(Trainer):
         margin=0.0,
         similarity_datasets_dir=None,
         subsampling_prob=None,
+        checkpoint=None,
     ):
         super(TrainerWordSimilarity, self).__init__(
             train_iter,
@@ -116,6 +118,7 @@ class TrainerWordSimilarity(Trainer):
         self.margin = margin
         self.loss_fn = criterions[loss_fn]
         self.lang = lang
+        self.checkpoint = checkpoint
         # If subsampling has been done earlier then word count must have been changed
         # This is an expected word count based on the subsampling prob parameters.
         if subsampling_prob != None:
@@ -142,9 +145,24 @@ class TrainerWordSimilarity(Trainer):
         metric = {}
         eval_dataset = "En-Simlex-999.Txt" if self.lang == "en" else "Jwsan-1400-Asso.Tsv"
         best_simlex_ws = -1
-        all_results = {"losses": [], "test_scores": []}
-        writer = SummaryWriter(Path(path) / "myexp")
+        start_epoch = 0
+
+        # Load parameters of model and optimizer to resume training
+        if self.checkpoint != None:
+            model_path = self.checkpoint + "/model.ckpt"
+            model.load_state_dict(torch.load(model_path)["model_state_dict"])
+            optimizer.load_state_dict(torch.load(model_path)["opt_state_dict"])
+            start_epoch = torch.load(model_path)["epoch"]
+            print(f"startepoch is {start_epoch}")
+
+        # Create log file
+        else:
+            with open(Path(path) / "epoch_summary.csv", "w") as f:
+                csv_writer = csv.writer(f)
+                csv_writer.writerow(["epoch", "losses", "test_scores", "train_time"])
+
         start_time = time.time()
+
         ## Setting Up the loss function
         for epoch in range(start_epoch, num_epochs):
             epoch_loss = []
@@ -275,20 +293,31 @@ class TrainerWordSimilarity(Trainer):
                         simlex_ws=simlex_ws
                     )
 
-            # Output loss and test_score as .json and tensorboard
-            all_results["losses"].append(np.mean(epoch_loss))
-            all_results["test_scores"].append(simlex_ws)
-            all_results["train_time"] = time.time() - start_time
-            writer.add_scalar("loss", all_results["losses"][-1], epoch+1)
-            writer.add_scalar("test_score", all_results["test_scores"][-1], epoch+1)
+            # Output loss and test_score on .csv file
+            result = []
+            result.append(epoch+1)
+            result.append(np.mean(epoch_loss))
+            result.append(simlex_ws)
+            result.append(time.time() - start_time)
+            with open(Path(path) / "epoch_summary.csv", "a") as f:
+                csv_writer = csv.writer(f)
+                csv_writer.writerow(result)
+
+        # Logging losses and test_scores every epoch on tensorboardX
+        writer = SummaryWriter(Path(path) / "summary")
+        epoch_summary = pd.read_csv(Path(path) / "epoch_summary.csv")
+        for row in epoch_summary.itertuples():
+            writer.add_scalar("loss", row.losses, row.epoch)
+            writer.add_scalar("test_score", row.test_scores, row.epoch)
 
         # Logging embeddings
-        writer.add_embedding(model.embeddings_word.weight, self.vocab.itos, global_step=epoch+1, tag="embeddings_word")
+        # writer.add_embedding(model.embeddings_word.weight, self.vocab.itos, global_step=epoch+1, tag="embeddings_word")
+
         writer.close()
-        with open(Path(path) / "epoch_summary.json", 'w', encoding='utf-8') as f:
-            json.dump(all_results, f, ensure_ascii=False, indent=4)
+
         print("Model trained.")
         print("Output saved.")
+
 
     def model_eval(self, model):
         if self.similarity_datasets_dir == None:
