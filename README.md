@@ -57,14 +57,14 @@ bin/language-modeling-with-boxes train \
 ## Pre-process
 1. Download Wikipedia Cirrussearch dump file from [here](https://dumps.wikimedia.org/other/cirrussearch/).
 
-    Ex.
+    Example of usage.
     ```
     curl -o data/jawiki/jawikisource-20221226-cirrussearch-content.json.gz https://dumps.wikimedia.org/other/cirrussearch/20221226/jawiki-20221226-cirrussearch-content.json.gz
     ```
 
 1. Preprocess the downloaded dump file.
 
-    Ex.
+    Example of usage.
     ```
     python preprocesser/make_corpus.py \
     --cirrus_file data/jawiki/jawikisource-20221226-cirrussearch-content.json.gz \
