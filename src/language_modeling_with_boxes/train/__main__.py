@@ -116,8 +116,15 @@ class IntOrPercent(click.ParamType):
 )
 @click.option(
     "--lang",
+    type=str,
     default="en",
     help="en or ja",
+)
+@click.option(
+    "--ignore_unk",
+    type=bool,
+    default=False,
+    help="Ignore <unk> token in training if True",
 )
 
 ######  Training parameters #########

@@ -38,6 +38,7 @@ def training(config):
         config["data_device"],
         config["add_pad"],
         config["eos_mask"],
+        config["ignore_unk"],
     )
 
     if config["model_type"] == "Word2Box":
