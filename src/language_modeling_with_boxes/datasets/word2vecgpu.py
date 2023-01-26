@@ -17,6 +17,7 @@ class Word2VecDatasetOnDevice(Dataset):
         subsample_thresh: float = 1e-3,
         eos_mask: bool = True,
         device: Union[int, str] = None,
+        ignore_unk: bool = False,
     ):
         self.corpus = corpus
         self.window_size = window_size
@@ -25,6 +26,8 @@ class Word2VecDatasetOnDevice(Dataset):
         self.eos_mask = eos_mask
         self.pad_id = torch.tensor(self.vocab.stoi["<pad>"]).to(self.corpus.device)
         self.eos_token = torch.tensor(self.vocab.stoi["<eos>"]).to(self.corpus.device)
+        self.ignore_unk = ignore_unk
+        self.unk_token = torch.tensor(self.vocab.stoi["<unk>"]).to(self.corpus.device)
         # pad this at the beginning and end with window_size number of padding
         self.pad_size = 10
         total_words = sum(self.vocab.freqs.values())
@@ -79,6 +82,12 @@ class Word2VecDatasetOnDevice(Dataset):
                 & (center != self.eos_token)
                 & (context != self.eos_token).any(dim=-1)
             )
+            if self.ignore_unk:
+                keep = (
+                    keep
+                    & (center != self.unk_token)
+                    & (context != self.unk_token).any(dim=-1)
+                )
             center = center[keep]
             context = context[keep]
             assert (center != self.pad_id).all()
@@ -99,7 +108,12 @@ class Word2VecDatasetOnDevice(Dataset):
 
     def to(self, device: Union[torch.device, str]):
         return Word2VecDatasetOnDevice(
-            self.corpus.to(device), self.window_size, self.vocab, self.subsample_thresh
+            corpus = self.corpus.to(device),
+            window_size = self.window_size,
+            vocab = self.vocab,
+            subsample_thresh = self.subsample_thresh,
+            eos_mask = self.eos_mask,
+            ignore_unk = self.ignore_unk,
         )
 
     def sub_sample_words(self, _input: LongTensor) -> BoolTensor:
@@ -119,7 +133,10 @@ class Word2VecDatasetOnDevice(Dataset):
             l_eos | (l_eos.any(dim=-1, keepdim=True) & (l_eos.cumsum(dim=-1) == 0))
         )
         mask = torch.cat((left_mask, right_mask), dim=-1)
-        return (_input != self.pad_id) & mask
+        if self.ignore_unk:
+            return ((_input != self.unk_token) & (_input != self.pad_id)) & mask
+        else:
+            return (_input != self.pad_id) & mask
 
 
 # @classmethod
@@ -144,6 +161,7 @@ class LazyDatasetLoader:
     eos_mask: bool = True
     batch_size: int = 64
     device: Union[int, str] = None
+    ignore_unk: bool = False
 
     def __attrs_post_init__(self):
         lng = len(self.training_tensor)
@@ -164,6 +182,7 @@ class LazyDatasetLoader:
                 vocab=self.vocab,
                 subsample_thresh=self.subsample_thresh,
                 eos_mask=self.eos_mask,
+                ignore_unk=self.ignore_unk,
             ).to(self.device)
             train_iter = TensorDataLoader(train_dataset, self.batch_size, shuffle=True)
             yield from train_iter
