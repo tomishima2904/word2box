@@ -14,6 +14,7 @@ import os
 import pprint
 import time
 from tensorboardX import SummaryWriter
+import logzero
 
 from .loss import nll, nce, max_margin
 from .negative_sampling import RandomNegativeCBOW, RandomNegativeSkipGram
@@ -160,6 +161,7 @@ class TrainerWordSimilarity(Trainer):
             with open(Path(path) / "epoch_summary.csv", "w") as f:
                 csv_writer = csv.writer(f)
                 csv_writer.writerow(["epoch", "losses", "test_scores", "train_time"])
+        logzero.logfile(Path(path) / "logfile.log", disableStderrLogger=True)
 
         start_time = time.time()
 
@@ -232,10 +234,11 @@ class TrainerWordSimilarity(Trainer):
                     best_simlex_ws = max(metric[eval_dataset], best_simlex_ws)
                     metric.update({"best_simlex_ws": best_simlex_ws})
                     print(
-                        "Epoch {0} | Loss: {1}| spearmanr: {2}".format(
-                            epoch + 1, np.mean(epoch_loss), simlex_ws
+                        "Epoch {0}| Step: {3} | Loss: {1}| spearmanr: {2}".format(
+                            epoch + 1, np.mean(epoch_loss), simlex_ws, i
                         )
                     )
+                    logzero.logger.info(f"Epoch {epoch+1}  | Step:{i}  | Loss: {np.mean(epoch_loss)}| spearmanr: {simlex_ws}")
 
                     if save_model:
                         model.save_checkpoint(
@@ -274,6 +277,7 @@ class TrainerWordSimilarity(Trainer):
                     epoch + 1, np.mean(epoch_loss), simlex_ws
                 )
             )
+            logzero.logger.info(f"Epoch {epoch+1} | Loss: {np.mean(epoch_loss)}| spearmanr: {simlex_ws}")
 
             if save_model:
                 model.save_checkpoint(
@@ -368,5 +372,6 @@ class TrainerWordSimilarity(Trainer):
                     metrics[file.title()] = correlation
 
         pprint.pprint(metrics, width=1)
+        logzero.logger.info(metrics)
 
         return metrics
