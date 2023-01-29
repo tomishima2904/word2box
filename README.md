@@ -66,7 +66,7 @@ bin/language-modeling-with-boxes train \
 
     Example of usage.
     ```
-    python preprocesser/make_corpus.py \
+    python src/preprocesser/make_corpus.py \
     --cirrus_file data/jawiki/jawikisource-20221226-cirrussearch-content.json.gz \
     --output_dir data/jawiki \
     --tokenizer='mecab' \
