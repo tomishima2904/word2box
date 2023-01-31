@@ -64,12 +64,13 @@ def eval(args):
 
     # 語彙のデータローダー
     dataloader = DataLoader(
-        dataset= TrainedAllVocabDataset(vocab_stoi, model),
+        dataset= TrainedAllVocabDataset(vocab_stoi, model, device),
         batch_size=args.batch_size,
         shuffle=False,
         num_workers=args.num_workers,
-        pin_memory =True,
+        pin_memory =bool(args.pin_memory),
     )
+    model.to(device)
 
     # 評価用データセットをロード
     dataset_dir = 'data/qualitative_datasets'
@@ -96,7 +97,7 @@ def eval(args):
         for stimuli, stim_ids in tqdm(zip(eval_words_list, eval_ids_list), total=len(eval_words_list)):
             result = []
             result.extend(stimuli)
-            scores, labels = set_operation.all_words_similarity(stim_ids, dataloader, model)
+            scores, labels = set_operation.all_words_similarity(stim_ids.to(device), dataloader, model)
             result.extend(stim_ids.to('cpu').detach().numpy().tolist())
             similar_words = [vocab_itos[label] for label in (labels).to(torch.int64)]
             result.append(similar_words)
@@ -111,6 +112,7 @@ if __name__ == '__main__':
     parser.add_argument('--eval_file', type=str, required=True, help="file path where eval file is")
     parser.add_argument('--batch_size', type=int, default=16384, help="batch size for evaluating on all vocab")
     parser.add_argument('--num_workers', type=int, default=0, help="number of workers for dataloader")
+    parser.add_argument('--pin_memory', type=int, default=0, help="1 if you use pin memory in dataloader")
     parser.add_argument('--multi_gpu', type=int, default=0, help="1 if you use multi gpu")
     args = parser.parse_args()
 

@@ -15,15 +15,17 @@ class TrainedAllVocabDataset(Dataset):
     def __init__(
         self,
         vocab_stoi: dict,
-        model: Union[Word2Box, Word2Vec, Word2VecPooled, Word2BoxConjunction, Word2Gauss]
+        model: Union[Word2Box, Word2Vec, Word2VecPooled, Word2BoxConjunction, Word2Gauss],
+        device
     ):
         super().__init__()
         self.vocab_stoi = vocab_stoi
         self.vocab_ids = [v_id for v_id in self.vocab_stoi.values()]
         # special_token = [0, 1, 2, 3, 4]
         # for token in special_token: self.vocab_ids.remove(token)
-        self.vocab_ids = LongTensor(self.vocab_ids)
+        self.vocab_ids = LongTensor(self.vocab_ids).to(device) #.to('cpu').detach()
         self.model = model
+        self.device = device
 
 
     def __getitem__(self, idx) -> LongTensor:

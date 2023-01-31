@@ -131,7 +131,7 @@ def all_words_similarity(
             scores = scores.squeeze(-1).to('cpu').detach()
             assert scores.size() == labels.size(), f"can't match size of `scores {scores.size()}` and `labels {labels.size()}`"
             all_scores = torch.cat([all_scores, scores])
-            all_labels = torch.cat([all_labels, labels])
+            all_labels = torch.cat([all_labels, labels.to('cpu').detach()])
 
             # scores を降順に並び替え、それに伴い labels も並び替える
             # Sort scores in descending order, also sort labels along with scores
