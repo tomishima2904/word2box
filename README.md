@@ -29,7 +29,7 @@ One example command to run training -
 ```
 bin/language-modeling-with-boxes train \
  --batch_size=4096 --box_type=BoxTensor \
- --data_device=gpu \
+ --data_device=cuda \
  --dataset= ptb `Please change this to your dataset` \
  --embedding_dim=64 \
  --eval_file=./data/similarity_datasets/ \
@@ -81,7 +81,7 @@ One example command to run training -
 bin/language-modeling-with-boxes train \
  --batch_size=4096 \
  --box_type=BoxTensor \
- --data_device=gpu \
+ --data_device=cuda \
  --dataset= `jawiki` or `example` \
  --embedding_dim=64 \
  --eval_file=./data/ja_similarity_datasets/ \
