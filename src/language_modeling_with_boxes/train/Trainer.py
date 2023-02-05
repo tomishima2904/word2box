@@ -20,10 +20,10 @@ from .loss import nll, nce, max_margin
 from .negative_sampling import RandomNegativeCBOW, RandomNegativeSkipGram
 
 
-global use_cuda
-use_cuda = torch.cuda.is_available()
-device = torch.cuda.current_device() if use_cuda else "cpu"
-torch.autograd.set_detect_anomaly(True)
+# global use_cuda
+# use_cuda = torch.cuda.is_available()
+# device = torch.cuda.current_device() if use_cuda else "cpu"
+# torch.autograd.set_detect_anomaly(True)
 
 criterions = {"nll": nll, "nce": nce, "max_margin": max_margin}
 

@@ -13,9 +13,9 @@ from ..box.box_wrapper import DeltaBoxTensor, BoxTensor
 from ..box.modules import BoxEmbedding
 from .BaseModule import BaseModule, MaskedAvgPoolingLayer
 
-global use_cuda
-use_cuda = torch.cuda.is_available()
-device = 0 if use_cuda else -1
+# global use_cuda
+# use_cuda = torch.cuda.is_available()
+# device = 0 if use_cuda else -1
 
 
 class Word2Box(BaseModule):

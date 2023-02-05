@@ -17,9 +17,9 @@ from pathlib import Path
 from typing import *
 
 
-global use_cuda
-use_cuda = torch.cuda.is_available()
-device = torch.cuda.current_device() if use_cuda else "cpu"
+# global use_cuda
+# use_cuda = torch.cuda.is_available()
+# device = torch.cuda.current_device() if use_cuda else "cpu"
 max_window = 10
 
 

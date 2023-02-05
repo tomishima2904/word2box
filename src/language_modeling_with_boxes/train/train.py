@@ -9,9 +9,9 @@ from ..datasets.utils import get_iter_on_device
 
 import json
 
-global use_cuda
-use_cuda = torch.cuda.is_available()
-device = torch.cuda.current_device() if use_cuda else "cpu"
+# global use_cuda
+# use_cuda = torch.cuda.is_available()
+# device = torch.cuda.current_device() if use_cuda else "cpu"
 
 
 def training(config):
