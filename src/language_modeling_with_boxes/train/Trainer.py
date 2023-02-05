@@ -39,6 +39,7 @@ class Trainer:
         loss_fn=None,
         negative_samples=5,
         log_frequency=1000,
+        device="cpu",
     ):
         self.train_iter = train_iter
         self.val_iter = val_iter
@@ -54,8 +55,9 @@ class Trainer:
         )
         self.sampling = torch.pow(sorted_freqs, 0.75)
         self.sampling = self.sampling / torch.sum(self.sampling)
-        if use_cuda:
-            self.sampling = self.sampling.cuda()
+        self.device = device
+        if "cuda" in self.device and torch.cuda.is_available():
+            self.sampling = self.sampling.to(self.device)
 
     def train_model(self, model, num_epochs=100, path="./", save_model=False):
         pass
@@ -103,6 +105,7 @@ class TrainerWordSimilarity(Trainer):
         similarity_datasets_dir=None,
         subsampling_prob=None,
         checkpoint=None,
+        device="cpu",
     ):
         super(TrainerWordSimilarity, self).__init__(
             train_iter,
@@ -113,6 +116,7 @@ class TrainerWordSimilarity(Trainer):
             loss_fn=loss_fn,
             negative_samples=negative_samples,
             log_frequency=log_frequency,
+            device=device,
         )
 
         self.similarity_datasets_dir = similarity_datasets_dir
@@ -124,7 +128,7 @@ class TrainerWordSimilarity(Trainer):
         # This is an expected word count based on the subsampling prob parameters.
         if subsampling_prob != None:
             self.sampling = (
-                torch.min(torch.tensor(1.0).to(device), 1 - subsampling_prob.to(device))
+                torch.min(torch.tensor(1.0).to(self.device), 1 - subsampling_prob.to(self.device))
                 * self.sampling
             )
         if model_mode == "CBOW":
@@ -172,7 +176,7 @@ class TrainerWordSimilarity(Trainer):
 
             for i, batch in enumerate(self.train_iter):
                 # Create negative samples for the batch
-                batch = self.to(batch, device)
+                batch = self.to(batch, self.device)
                 batch = self.add_negatives(batch)
 
                 # Start the optimization
@@ -350,12 +354,12 @@ class TrainerWordSimilarity(Trainer):
                             word1 = (
                                 torch.tensor(self.vocab.stoi[row[0]], dtype=int)
                                 .unsqueeze(0)
-                                .to(device)
+                                .to(self.device)
                             )
                             word2 = (
                                 torch.tensor(self.vocab.stoi[row[1]], dtype=int)
                                 .unsqueeze(0)
-                                .to(device)
+                                .to(self.device)
                             )
                             score = model.word_similarity(word1, word2)
                             if file.title() == "Hyperlex-Dev.Txt":

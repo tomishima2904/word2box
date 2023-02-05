@@ -153,8 +153,7 @@ def get_iter_on_device(
 
     ## Create data on the device
     print("Creating iterable dataset on GPU/CPU...")
-    if data_device == "gpu":
-        data_device = device
+
     train_iter = LazyDatasetLoader(
         training_tensor=train_tokenized,
         n_splits=1000,

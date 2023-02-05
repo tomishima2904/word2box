@@ -89,8 +89,8 @@ def training(config):
     else:
         raise ValueError("Model type is not valid. Please enter a valid model type")
 
-    if use_cuda:
-        model.cuda()
+    if "cuda" in config["data_device"] and torch.cuda.is_available():
+        model.to(config["data_device"])
 
     # Instance of trainer
     if config["model_type"] == "Word2Box" or config["model_type"] == "Word2Vec":
@@ -109,6 +109,7 @@ def training(config):
             similarity_datasets_dir=config["eval_file"],
             subsampling_prob=None,  # pass: subsampling_prob, when you want to adjust neg_sampling distn
             checkpoint=config["checkpoint"],
+            device=config["data_device"],
         )
     elif (
         config["model_type"] == "Word2BoxPooled"
@@ -131,6 +132,7 @@ def training(config):
             similarity_datasets_dir=config["eval_file"],
             subsampling_prob=None,  # pass: subsampling_prob, when you want to adjust neg_sampling distn
             checkpoint=config["checkpoint"],
+            device=config["data_device"],
         )
 
     # Get datetime for name of dir
