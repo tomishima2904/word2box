@@ -24,8 +24,8 @@ from vocab_library import VocabLibrary
 
 def eval(args):
 
-    if args.data_device == "gpu":
-        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    if "cuda" in args.data_device:
+        device = torch.device(args.data_device if torch.cuda.is_available() else "cpu")
         torch.backends.cudnn.benchmark = True
     else:
         device = "cpu"
@@ -54,7 +54,7 @@ def eval(args):
     model_ckpt = torch.load(args.result_dir + "/best_model.ckpt")
     model.load_state_dict(model_ckpt['model_state_dict'])
 
-    if args.multi_gpu==1 and args.data_device == "gpu":
+    if args.multi_gpu==1 and "cuda" in args.data_device:
         pass
         # model = DDP(model, device_ids=[0, 1])
         # model = model.module
@@ -108,7 +108,7 @@ def eval(args):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--result_dir', type=str, required=True, help="dir path where saved model is")
-    parser.add_argument('--data_device', type=str, default="gpu", help="device type")
+    parser.add_argument('--data_device', type=str, default="cpu", help="device type")
     parser.add_argument('--eval_file', type=str, required=True, help="file path where eval file is")
     parser.add_argument('--batch_size', type=int, default=16384, help="batch size for evaluating on all vocab")
     parser.add_argument('--num_workers', type=int, default=0, help="number of workers for dataloader")

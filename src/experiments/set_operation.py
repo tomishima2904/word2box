@@ -32,7 +32,7 @@ def intersect_multiple_box(
     with torch.no_grad():
 
         model.eval()
-        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        device = word_ids.device
 
         # 刺激語を埋め込み表現に変換
         # Embedding words
@@ -95,7 +95,7 @@ def all_words_similarity(
         LongTensor: Top `num_output` labels which are the most similar to intersection box of input `words`
     """
 
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    device = word_ids.device
 
     with torch.no_grad():
 
