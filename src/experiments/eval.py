@@ -16,7 +16,7 @@ from pathlib import Path
 # モデルのリロードに必要なモジュールをインポートする
 from language_modeling_with_boxes.models import Word2Box, Word2Vec, Word2VecPooled, Word2BoxConjunction, Word2Gauss
 
-import set_operation
+import experiments.set_operation as set_operation
 from utils.file_handler import *
 from datasets import TrainedAllVocabDataset
 from vocab_library import VocabLibrary
