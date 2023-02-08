@@ -245,13 +245,13 @@ class TrainerWordSimilarity(Trainer):
                     logzero.logger.info(f"Epoch {epoch+1}  | Step:{i}  | Loss: {np.mean(epoch_loss)}| spearmanr: {simlex_ws}")
 
                     if save_model:
-                        model.save_checkpoint(
-                            Path(path) / "model.ckpt",
-                            epoch=epoch+1,
-                            optimizer=optimizer,
-                            loss=np.mean(epoch_loss),
-                            simlex_ws=simlex_ws
-                        )
+                        # model.save_checkpoint(
+                        #     Path(path) / "model.ckpt",
+                        #     epoch=epoch+1,
+                        #     optimizer=optimizer,
+                        #     loss=np.mean(epoch_loss),
+                        #     simlex_ws=simlex_ws
+                        # )
                                 # savethe best hyperparameter
                         if simlex_ws == best_simlex_ws:
                             model.save_checkpoint(
