@@ -3,6 +3,7 @@ from torch import Tensor, LongTensor
 from torch.utils.data import DataLoader
 import sys, os
 from typing import Union, List, Dict, Tuple
+from tqdm import tqdm
 
 
 # モデルのリロードに必要なモジュールをインポートする
@@ -88,7 +89,6 @@ def all_words_similarity(
     word_ids: LongTensor,
     dataloader: DataLoader,
     model: Union[Word2Box, Word2Vec, Word2VecPooled, Word2BoxConjunction, Word2Gauss],
-    num_output: int = 100,
 ) -> Tuple[LongTensor, LongTensor]:
     """ Output the most `num_output` similar scores and labels to box of input words
 
@@ -110,7 +110,7 @@ def all_words_similarity(
         all_scores = LongTensor([])
         all_labels = LongTensor([])
 
-        for boxes, labels in dataloader:
+        for boxes, labels in tqdm(dataloader):
 
             # 共通部分と語彙のBoxTensorを作成
             # Make BoxTensors
@@ -140,13 +140,9 @@ def all_words_similarity(
             all_scores = torch.cat([all_scores, scores])
             all_labels = torch.cat([all_labels, labels.to('cpu').detach()])
 
-            # scores を降順に並び替え、それに伴い labels も並び替える
-            # Sort scores in descending order, also sort labels along with scores
-            all_scores, sorted_indices = torch.sort(all_scores, descending=True)
-            all_labels = all_labels[sorted_indices]
-
-            if len(all_scores) > num_output:
-                all_scores = all_scores[:num_output]
-                all_labels = all_labels[:num_output]
+        # scores を降順に並び替え、それに伴い labels も並び替える
+        # Sort scores in descending order, also sort labels along with scores
+        all_scores, sorted_indices = torch.sort(all_scores, descending=True)
+        all_labels = all_labels[sorted_indices]
 
     return all_scores, all_labels

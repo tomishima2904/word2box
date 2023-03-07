@@ -26,6 +26,7 @@ def eval(args):
 
     if "cuda" in args.data_device:
         device = torch.device(args.data_device if torch.cuda.is_available() else "cpu")
+        print(f"Using {device}")
         torch.backends.cudnn.benchmark = True
     else:
         device = "cpu"
@@ -51,16 +52,14 @@ def eval(args):
     )
 
     # 作成したインスタンスに訓練済みモデルのパラメータを読み込む
-    model_ckpt = torch.load(args.result_dir + "/best_model.ckpt")
+    print("Loading model...")
+    model_ckpt = torch.load(args.result_dir + "/best_model.ckpt", map_location='cpu')
     model.load_state_dict(model_ckpt['model_state_dict'])
 
     if args.multi_gpu==1 and "cuda" in args.data_device:
         pass
         # model = DDP(model, device_ids=[0, 1])
         # model = model.module
-
-    # words = ['bank', 'river']  # 刺激語のリスト
-    # word_ids = vocab_libs.stoi_converter(words)  # IDのテンソルへ変換
 
     # 語彙のデータローダー
     dataloader = DataLoader(
@@ -74,16 +73,17 @@ def eval(args):
 
     # 評価用データセットをロード
     dataset_dir = 'data/qualitative_datasets'
-    eval_dataframe = csv_reader(dataset_dir + "/" + args.eval_file)
+    eval_dataframe = csv_reader(dataset_dir + "/" + args.eval_file + ".csv")
     eval_words_list: List = eval_dataframe.to_numpy().tolist()
     eval_ids_list: LongTensor = vocab_libs.stoi_converter(eval_words_list).to(device)
     assert len(eval_words_list) == len(eval_ids_list), f"cat't match the length of `words_list` {len(eval_words_list)} and `ids_list` {len(eval_ids_list)}"
 
-    if not os.path.isdir(f"{args.result_dir}/eval"):
-        os.makedirs(f"{args.result_dir}/eval")
+    output_dir = f"{args.result_dir}/{args.eval_file}"
+    if not os.path.isdir(output_dir):
+        os.makedirs(output_dir)
 
     # 刺激語の共通部分のboxと全ての語彙のboxとの類似度を計算
-    with open(f"{args.result_dir}/eval/{args.eval_file}", "w") as f:
+    with open(f"{output_dir}/{args.eval_file}.csv", "w") as f:
 
         num_stimuli = eval_ids_list.size(-1)
         header = []
@@ -94,14 +94,27 @@ def eval(args):
         csv_writer = csv.writer(f)
         csv_writer.writerow(header)
 
-        for stimuli, stim_ids in tqdm(zip(eval_words_list, eval_ids_list), total=len(eval_words_list)):
+        for stimuli, stim_ids in zip(eval_words_list, eval_ids_list):
             result = []
             result.extend(stimuli)
             scores, labels = set_operation.all_words_similarity(stim_ids.to(device), dataloader, model)
+            scores = scores.to('cpu').detach().numpy().tolist()
+            labels = labels.to('cpu').detach().numpy().tolist()
+
+            if args.output_allscores:
+                with open(f"{output_dir}/{stimuli[0]}.csv", 'w') as fo:
+                    stimuli_writer = csv.writer(fo)
+                    stimuli_writer.writerow(["labels", "scores"])
+                    output_list = [[vocab_itos[label], score] for label, score in zip(labels, scores)]
+                    stimuli_writer.writerows(output_list)
+
+            scores = scores[:args.num_output]
+            labels = labels[:args.num_output]
+
             result.extend(stim_ids.to('cpu').detach().numpy().tolist())
-            similar_words = [vocab_itos[label] for label in (labels).to(torch.int64)]
+            similar_words = [vocab_itos[label] for label in labels]
             result.append(similar_words)
-            result.append(scores.to('cpu').detach().numpy().tolist())
+            result.append(scores)
             csv_writer.writerow(result)
 
 
@@ -111,7 +124,9 @@ if __name__ == '__main__':
     parser.add_argument('--data_device', type=str, default="cpu", help="device type")
     parser.add_argument('--eval_file', type=str, required=True, help="file path where eval file is")
     parser.add_argument('--batch_size', type=int, default=16384, help="batch size for evaluating on all vocab")
+    parser.add_argument('--num_output', type=int, default=300, help="number of labels and scores to be output")
     parser.add_argument('--num_workers', type=int, default=0, help="number of workers for dataloader")
+    parser.add_argument('--output_allscores', type=int, default=1)
     parser.add_argument('--pin_memory', type=int, default=0, help="1 if you use pin memory in dataloader")
     parser.add_argument('--multi_gpu', type=int, default=0, help="1 if you use multi gpu")
     args = parser.parse_args()
