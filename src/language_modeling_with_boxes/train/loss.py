@@ -3,9 +3,9 @@ from torch.nn import functional as F
 from ..box.utils import log1mexp
 
 
-global use_cuda
-use_cuda = torch.cuda.is_available()
-device = torch.cuda.current_device() if use_cuda else "cpu"
+# global use_cuda
+# use_cuda = torch.cuda.is_available()
+# device = torch.cuda.current_device() if use_cuda else "cpu"
 
 
 def nll(pos, neg, **kwagrs):
@@ -53,5 +53,5 @@ def max_margin(pos, neg, margin=5.0):
 	    loss =  - max(0, pos - mean(neg) + margin)
 	"""
     # Replicate the positive score number of negative sample times
-    zero = torch.tensor(0.0).to(device)
+    zero = torch.tensor(0.0).to(pos.device)
     return torch.sum(torch.max(zero, neg - pos + margin), dim=1)
