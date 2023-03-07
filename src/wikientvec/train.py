@@ -1,6 +1,7 @@
 import re
 import argparse
 from pathlib import Path
+import datetime, json
 
 import logzero
 from logzero import logger
@@ -14,8 +15,18 @@ regex_entity = re.compile(r'##[^#]+?##')
 
 
 def main(args):
-    output_dir = Path(args.output_dir)
+    # Get datetime for name of dir
+    t_delta = datetime.timedelta(hours=9)
+    JST = datetime.timezone(t_delta, 'JST')
+    now = datetime.datetime.now(JST)
+    date_time = now.strftime('%y%m%d%H%M%S')
+
+    output_dir = Path(f"{args.output_dir}/{date_time}")
     output_dir.mkdir(parents=True, exist_ok=True)
+
+    # Dump config as .json
+    with open(f"{output_dir}/config.json", 'w', encoding='utf-8') as f:
+        json.dump(vars(args), f, ensure_ascii=False, indent=4)
 
     word_vectors_file = output_dir / 'word_vectors.txt'
     entity_vectors_file = output_dir / 'entity_vectors.txt'
