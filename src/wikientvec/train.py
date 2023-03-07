@@ -23,14 +23,15 @@ def main(args):
 
     logger.info('training the model')
     model = Word2Vec(sentences=LineSentence(args.corpus_file),
-                     size=args.embed_size,
+                     vector_size=args.embed_size,
                      window=args.window_size,
                      negative=args.sample_size,
                      min_count=args.min_count,
                      workers=args.workers,
                      sg=1,
                      hs=0,
-                     iter=args.epoch)
+                     epochs=args.epoch,
+                     seed=19990429)
 
     word_vocab_size = 0
     entity_vocab_size = 0
