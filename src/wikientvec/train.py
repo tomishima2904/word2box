@@ -28,8 +28,6 @@ def main(args):
     with open(f"{output_dir}/config.json", 'w', encoding='utf-8') as f:
         json.dump(vars(args), f, ensure_ascii=False, indent=4)
 
-    word_vectors_file = output_dir / 'word_vectors.txt'
-    entity_vectors_file = output_dir / 'entity_vectors.txt'
     all_vectors_file = output_dir / 'all_vectors.txt'
 
     logger.info('training the model')
@@ -41,41 +39,22 @@ def main(args):
                      workers=args.workers,
                      sg=1,
                      hs=0,
-                     epochs=args.epoch,
+                     epochs=args.epochs,
                      seed=19990429)
 
-    word_vocab_size = 0
-    entity_vocab_size = 0
-    for token in model.wv.vocab:
-        if regex_entity.match(token):
-            entity_vocab_size += 1
-        else:
-            word_vocab_size += 1
 
-    total_vocab_size = word_vocab_size + entity_vocab_size
-    logger.info(f'word vocabulary size: {word_vocab_size}')
-    logger.info(f'entity vocabulary size: {entity_vocab_size}')
+    total_vocab_size = len(model.wv)
     logger.info(f'total vocabulary size: {total_vocab_size}')
 
     logger.info('writing word/entity vectors to files')
-    with open(word_vectors_file, 'w') as fo_word, \
-         open(entity_vectors_file, 'w') as fo_entity, \
-         open(all_vectors_file, 'w') as fo_all:
+    with open(all_vectors_file, 'w') as fo_all:
 
         # write word2vec headers to each file
-        print(word_vocab_size, args.embed_size, file=fo_word)
-        print(entity_vocab_size, args.embed_size, file=fo_entity)
         print(total_vocab_size, args.embed_size, file=fo_all)
 
         # write tokens and vectors
-        for (token, _) in sorted(model.wv.vocab.items(), key=lambda t: -t[1].count):
-            vector = model.wv[token]
-
-            if regex_entity.match(token):
-                print(token[2:-2], *vector, file=fo_entity)
-            else:
-                print(token, *vector, file=fo_word)
-
+        for (token, _) in model.wv.key_to_index.items():
+            vector = model.wv.get_vector(token)
             print(token, *vector, file=fo_all)
 
 
@@ -94,7 +73,7 @@ if __name__ == "__main__":
         help='Number of negative samples [5]')
     parser.add_argument('--min_count', type=int, default=5,
         help='Ignores all words/entities with total frequency lower than this [5]')
-    parser.add_argument('--epoch', type=int, default=5,
+    parser.add_argument('--epochs', type=int, default=5,
         help='number of training epochs [5]')
     parser.add_argument('--workers', type=int, default=2,
         help='Use these many worker threads to train the model [2]')
