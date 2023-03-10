@@ -360,3 +360,41 @@ def _softplus_inverse(t: torch.Tensor, beta=1.0, threshold=20):
     res[below_thresh] = torch.log(torch.exp(beta * t[below_thresh]) - 1.0) / beta
 
     return res
+
+
+class CenterBoxTensor(BoxTensor):
+
+  @property
+  def center(self) -> Tensor:
+    return self.data[..., 0, :]
+
+  @property
+  def z(self) -> Tensor:
+    #return self.data[..., 0, :] - torch.sigmoid(self.data[..., 1, :])
+    return self.data[..., 0, :] \
+         - torch.nn.functional.softplus(self.data[..., 1, :], beta=10.)
+
+  @property
+  def Z(self) -> Tensor:
+    #return self.data[..., 0, :] + torch.sigmoid(self.data[..., 1, :])
+    return self.data[..., 0, :] \
+         + torch.nn.functional.softplus(self.data[..., 1, :], beta=10.)
+
+
+class CenterSigmoidBoxTensor(BoxTensor):
+
+  @property
+  def center(self) -> Tensor:
+    return self.data[..., 0, :]
+
+  @property
+  def z(self) -> Tensor:
+    z = self.data[..., 0, :] \
+      - torch.nn.functional.softplus(self.data[..., 1, :], beta=10.)
+    return torch.sigmoid(z)
+
+  @property
+  def Z(self) -> Tensor:
+    Z = self.data[..., 0, :] \
+      + torch.nn.functional.softplus(self.data[..., 1, :], beta=10.)
+    return torch.sigmoid(Z)

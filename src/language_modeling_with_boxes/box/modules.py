@@ -4,7 +4,7 @@ from typing import Union, TypeVar
 import torch
 from torch.nn import Embedding
 
-from .box_wrapper import BoxTensor, TBoxTensor, DeltaBoxTensor
+from .box_wrapper import BoxTensor, TBoxTensor, DeltaBoxTensor, CenterBoxTensor, CenterSigmoidBoxTensor
 
 logger = logging.getLogger(__name__)
 
@@ -53,6 +53,8 @@ class BoxEmbedding(Embedding):
     box_types = {
         "DeltaBoxTensor": DeltaBoxTensor,
         "BoxTensor": BoxTensor,
+        "CenterBoxTensor": CenterBoxTensor,
+        "CenterSigmoidBoxTensor": CenterSigmoidBoxTensor,
     }
 
     def init_weights(self):

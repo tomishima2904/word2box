@@ -178,6 +178,8 @@ class IntOrPercent(click.ParamType):
             "BoxTensorLearntTemp",
             "DeltaBoxTensor",
             "SigmoidBoxTensor",
+            "CenterBoxTensor",
+            "CenterSigmoidBoxTensor",
         ],
         case_sensitive=False,
     ),
