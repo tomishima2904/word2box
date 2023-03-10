@@ -2,6 +2,7 @@ import re
 import argparse
 from pathlib import Path
 import datetime, json
+import numpy as np
 
 import logzero
 from logzero import logger
@@ -53,9 +54,20 @@ def main(args):
         print(total_vocab_size, args.embed_size, file=fo_all)
 
         # write tokens and vectors
-        for (token, _) in model.wv.key_to_index.items():
-            vector = model.wv.get_vector(token)
-            print(token, *vector, file=fo_all)
+        if args.vocab_stoi == None:
+            for (token, _) in model.wv.key_to_index.items():
+                vector = model.wv.get_vector(token)
+                print(token, *vector, file=fo_all)
+        else:
+            vocab_stoi = json.load(open(args.vocab_stoi, "r"))
+            vocab_stoi = sorted(vocab_stoi.items(), key=lambda x:x[1])
+            for stoi_pair in vocab_stoi:
+                token = stoi_pair[0]
+                try:
+                    vector = model.wv.get_vector(token)
+                except:
+                    vector = np.random.rand(args.embed_size).tolist()
+                print(token, *vector, file=fo_all)
 
 
 if __name__ == "__main__":
@@ -77,5 +89,7 @@ if __name__ == "__main__":
         help='number of training epochs [5]')
     parser.add_argument('--workers', type=int, default=2,
         help='Use these many worker threads to train the model [2]')
+    parser.add_argument('--vocab_stoi', type=str, default=None,
+        help='Vocab files to sort trained vecs')
     args = parser.parse_args()
     main(args)
