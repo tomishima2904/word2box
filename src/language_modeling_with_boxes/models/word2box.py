@@ -28,6 +28,8 @@ class Word2Box(BaseModule):
         volume_temp=1.0,
         intersection_temp=1.0,
         box_type="BoxTensor",
+        w2v_dir=None,
+        offset_temp=0.02,
         **kwargs
     ):
         super(Word2Box, self).__init__()
@@ -45,10 +47,10 @@ class Word2Box(BaseModule):
 
         # Create embeddings
         self.embeddings_word = BoxEmbedding(
-            self.vocab_size, self.embedding_dim, box_type=box_type
+            self.vocab_size, self.embedding_dim, box_type=box_type, w2v_dir=w2v_dir, offset_temp=offset_temp
         )
         self.embedding_context = BoxEmbedding(
-            self.vocab_size, self.embedding_dim, box_type=box_type
+            self.vocab_size, self.embedding_dim, box_type=box_type, w2v_dir=w2v_dir, offset_temp=offset_temp
         )
 
     def forward(self, idx_word, idx_context, train=True):
