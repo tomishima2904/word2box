@@ -178,6 +178,8 @@ class IntOrPercent(click.ParamType):
             "BoxTensorLearntTemp",
             "DeltaBoxTensor",
             "SigmoidBoxTensor",
+            "CenterBoxTensor",
+            "CenterSigmoidBoxTensor",
         ],
         case_sensitive=False,
     ),
@@ -195,6 +197,18 @@ class IntOrPercent(click.ParamType):
     type=float,
     default=1.0,
     help="Volume temperature",
+)
+@click.option(
+    "--w2v_dir",
+    type=str,
+    default=None,
+    help="Dir where trained word2vec model is for initializing weight of Word2Box",
+)
+@click.option(
+    "--offset_temp",
+    type=float,
+    default=0.02,
+    help="Offset temperature",
 )
 
 ############ Pooling options #########

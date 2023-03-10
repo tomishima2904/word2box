@@ -183,3 +183,4 @@ nohup.out
 data/jawiki*/
 data/w2v_ja/
 *.~lock*
+*all_vectors.txt
