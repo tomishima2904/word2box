@@ -17,9 +17,9 @@ from pathlib import Path
 from typing import *
 
 
-global use_cuda
-use_cuda = torch.cuda.is_available()
-device = torch.cuda.current_device() if use_cuda else "cpu"
+# global use_cuda
+# use_cuda = torch.cuda.is_available()
+# device = torch.cuda.current_device() if use_cuda else "cpu"
 max_window = 10
 
 
@@ -121,6 +121,7 @@ def get_iter_on_device(
     data_device,
     add_pad,
     eos_mask,
+    ignore_unk,
 ):
     print("Loading VOCAB & Tokenized Training files ...")
     vocab_stoi, vocab_freq = load_vocab("./data/" + dataset)
@@ -152,8 +153,7 @@ def get_iter_on_device(
 
     ## Create data on the device
     print("Creating iterable dataset on GPU/CPU...")
-    if data_device == "gpu":
-        data_device = device
+
     train_iter = LazyDatasetLoader(
         training_tensor=train_tokenized,
         n_splits=1000,
@@ -163,6 +163,7 @@ def get_iter_on_device(
         eos_mask=eos_mask,
         device=data_device,
         batch_size=batch_size,
+        ignore_unk=ignore_unk,
     )
 
     val_iter, test_iter = None, None

@@ -13,21 +13,23 @@ from ..box.box_wrapper import DeltaBoxTensor, BoxTensor
 from ..box.modules import BoxEmbedding
 from .BaseModule import BaseModule, MaskedAvgPoolingLayer
 
-global use_cuda
-use_cuda = torch.cuda.is_available()
-device = 0 if use_cuda else -1
+# global use_cuda
+# use_cuda = torch.cuda.is_available()
+# device = 0 if use_cuda else -1
 
 
 class Word2Box(BaseModule):
     def __init__(
         self,
-        TEXT=None,
+        vocab_size=None,
         embedding_dim=50,
         batch_size=10,
         n_gram=4,
         volume_temp=1.0,
         intersection_temp=1.0,
         box_type="BoxTensor",
+        w2v_dir=None,
+        offset_temp=0.02,
         **kwargs
     ):
         super(Word2Box, self).__init__()
@@ -35,7 +37,7 @@ class Word2Box(BaseModule):
         # Model
         self.batch_size = batch_size
         self.n_gram = n_gram
-        self.vocab_size = len(TEXT.itos)
+        self.vocab_size = vocab_size
         self.embedding_dim = embedding_dim
 
         # Box features
@@ -45,10 +47,10 @@ class Word2Box(BaseModule):
 
         # Create embeddings
         self.embeddings_word = BoxEmbedding(
-            self.vocab_size, self.embedding_dim, box_type=box_type
+            self.vocab_size, self.embedding_dim, box_type=box_type, w2v_dir=w2v_dir, offset_temp=offset_temp
         )
         self.embedding_context = BoxEmbedding(
-            self.vocab_size, self.embedding_dim, box_type=box_type
+            self.vocab_size, self.embedding_dim, box_type=box_type, w2v_dir=w2v_dir, offset_temp=offset_temp
         )
 
     def forward(self, idx_word, idx_context, train=True):
