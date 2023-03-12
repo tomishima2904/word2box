@@ -167,10 +167,9 @@ class TrainerWordSimilarity(Trainer):
                 csv_writer.writerow(["epoch", "losses", "test_scores", "train_time"])
         logzero.logfile(Path(path) / "logfile.log", disableStderrLogger=True)
 
-        start_time = time.time()
-
         ## Setting Up the loss function
         for epoch in range(start_epoch, num_epochs):
+            start_time = time.time()
             epoch_loss = []
             model.train()
 
