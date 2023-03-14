@@ -5,8 +5,8 @@ import json, csv, pickle
 from typing import List, Tuple, Dict, Any, Union
 
 
-# read .csv
-def csv_reader(path:str, header=None, encoding='utf-8') -> pd.DataFrame:
+# read .csv as pandas.DataFrame
+def read_csv_as_df(path:str, header=None, encoding='utf-8') -> pd.DataFrame:
     try:
         df = pd.read_csv(path, header=header, encoding=encoding, engine="python")
     except:
@@ -15,7 +15,7 @@ def csv_reader(path:str, header=None, encoding='utf-8') -> pd.DataFrame:
 
 
 # write .csv with header
-def csv_writer(path:str, data:List, header:List=None, encoding='utf-8') -> None:
+def write_csv(path:str, data:List, header:List=None, encoding='utf-8') -> None:
     with open(path, 'w', newline="",  encoding=encoding) as f:
         writer = csv.writer(f)
         if type(header)==str: writer.writerow(header)
@@ -24,7 +24,7 @@ def csv_writer(path:str, data:List, header:List=None, encoding='utf-8') -> None:
 
 
 # read .tsv
-def tsv_reader(path:str, header:List=None, encoding='utf-8') -> pd.DataFrame:
+def read_tsv(path:str, header:List=None, encoding='utf-8') -> pd.DataFrame:
     try:
         df = pd.read_csv(path, header=header, encoding=encoding, engine="python", delimiter='\t')
     except:
@@ -33,7 +33,7 @@ def tsv_reader(path:str, header:List=None, encoding='utf-8') -> pd.DataFrame:
 
 
 # write .tsv with header
-def tsv_writer(path:str, data:List, header:List=None, encoding='utf-8') -> None:
+def write_tsv(path:str, data:List, header:List=None, encoding='utf-8') -> None:
     with open(path, 'w', newline="",  encoding=encoding) as f:
         writer = csv.writer(f, delimiter='\t')
         if type(header)==str: writer.writerow(header)
@@ -42,27 +42,27 @@ def tsv_writer(path:str, data:List, header:List=None, encoding='utf-8') -> None:
 
 
 # read .json
-def json_reader(path:str, encoding='utf-8') -> Dict:
+def read_json(path:str, encoding='utf-8') -> Dict:
     with open(path, encoding=encoding) as f:
         return json.load(f)
 
 
 # write .json
-def json_writer(path:str, data:dict, encoding='utf-8') -> None:
+def write_json(path:str, data:dict, encoding='utf-8') -> None:
     with open(path, 'w', encoding=encoding) as f:
         json.dump(data, f, ensure_ascii=False, indent=4)
     print(f"Successfully dumped {path} !")
 
 
 # read .pickle
-def pickle_reader(path:str) -> Any:
+def read_pickle(path:str) -> Any:
     with open(path, 'rb') as f:
         any_type_instance = pickle.load(f)
     return any_type_instance
 
 
 # write .pickle
-def pickle_writer(path:str, data:Any) -> None:
+def write_pickle(path:str, data:Any) -> None:
     with open(path, 'wb') as f:
         pickle.dump(data, f)
     print(f"Successfully dumped {path} !")
@@ -74,7 +74,7 @@ def makedirs(path:str):
         os.makedirs(path)
 
 
-def dategetter() -> str:
+def get_8char_datetime() -> str:
     t_delta = datetime.timedelta(hours=9)
     JST = datetime.timezone(t_delta, 'JST')
     now = datetime.datetime.now(JST)
