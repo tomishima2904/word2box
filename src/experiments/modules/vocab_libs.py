@@ -7,6 +7,7 @@ import json
 class VocabLibs(object):
     def __init__(self, vocab_stoi_path: str) -> None:
         super().__init__()
+        print("Vocab loading ...")
         self.vocab_stoi: Dict = json.load(open(vocab_stoi_path, "r"))
 
 
@@ -55,3 +56,9 @@ class VocabLibs(object):
 
     def get_vocab_size(self) -> int:
         return len(self.vocab_stoi)
+
+
+class VocabLibsWithFreq(VocabLibs):
+    def __init__(self, vocab_stoi_path: str, vocab_freq_path: str = None) -> None:
+        super().__init__(vocab_stoi_path)
+        self.vocab_freq: Dict = json.load(open(vocab_freq_path, "r"))
