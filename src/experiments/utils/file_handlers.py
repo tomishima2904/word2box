@@ -31,7 +31,7 @@ def read_csv_as_df(path:str, header=None, encoding='utf-8') -> pd.DataFrame:
 def write_csv(path:str, data:List, header:List=None, encoding='utf-8') -> None:
     with open(path, 'w', newline="",  encoding=encoding) as f:
         writer = csv.writer(f)
-        if type(header)==str: writer.writerow(header)
+        if header is not None: writer.writerow(header)
         writer.writerows(data)
     print(f"Successfully dumped {path} !")
 
