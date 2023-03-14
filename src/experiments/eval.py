@@ -17,9 +17,9 @@ from pathlib import Path
 from language_modeling_with_boxes.models import Word2Box, Word2Vec, Word2VecPooled, Word2BoxConjunction, Word2Gauss
 
 import experiments.set_operation as set_operation
-from utils.file_handler import *
+from experiments.utils.file_handlers import *
 from datasets import TrainedAllVocabDataset
-from vocab_library import VocabLibrary
+from experiments.modules.vocab_libs import VocabLibs
 
 
 def eval(args):
@@ -37,8 +37,8 @@ def eval(args):
     # itos (IDから文字列) の辞書を作成
     print("Loading vocab file...")
     vocab_stoi = json.load(open("data/" + config["dataset"] + "/vocab_stoi.json", "r"))
-    vocab_libs = VocabLibrary(vocab_stoi)
-    vocab_itos = vocab_libs.vocab_itos
+    vocab_libs = VocabLibs(vocab_stoi)
+    vocab_itos = vocab_libs.get_vocab_itos()
 
     # モデルのインスタンスを作成する
     model = Word2BoxConjunction(
@@ -73,9 +73,8 @@ def eval(args):
 
     # 評価用データセットをロード
     dataset_dir = 'data/qualitative_datasets'
-    eval_dataframe = csv_reader(dataset_dir + "/" + args.eval_file + ".csv")
-    eval_words_list: List = eval_dataframe.to_numpy().tolist()
-    eval_ids_list: LongTensor = vocab_libs.stoi_converter(eval_words_list).to(device)
+    eval_words_list = read_csv(dataset_dir + "/" + args.eval_file + ".csv", has_header=False)
+    eval_ids_list: LongTensor = vocab_libs.words_list_to_ids_tensor(eval_words_list).to(device)
     assert len(eval_words_list) == len(eval_ids_list), f"cat't match the length of `words_list` {len(eval_words_list)} and `ids_list` {len(eval_ids_list)}"
 
     output_dir = f"{args.result_dir}/{args.eval_file}"

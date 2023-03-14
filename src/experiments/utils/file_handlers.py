@@ -5,6 +5,19 @@ import json, csv, pickle
 from typing import List, Tuple, Dict, Any, Union
 
 
+# read .csv as list
+def read_csv(path:str, has_header=False, encoding='utf-8', delimiter=',') -> List:
+    with open(path, "r", encoding=encoding) as f:
+        csvreader = csv.reader(f, delimiter=delimiter)
+        if has_header:
+            header: List = next(csvreader)
+            csvlist = [row for row in csvreader]
+            return csvlist, header
+        else:
+            csvlist = [row for row in csvreader]
+            return csvlist
+
+
 # read .csv as pandas.DataFrame
 def read_csv_as_df(path:str, header=None, encoding='utf-8') -> pd.DataFrame:
     try:
