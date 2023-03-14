@@ -31,7 +31,7 @@ class VocabLibs(object):
 
         # if `words` is 1-dim (list of words)
         else:
-            word_ids = list(map(lambda s: self._stoi_unk(s), words))
+            word_ids = list(map(lambda s: self.stoi_considering_unk(s), words))
 
         return LongTensor(word_ids)
 
@@ -94,7 +94,7 @@ class VocabLibsWithFreq(VocabLibs):
 
             x = np.arange(len(sorted_freqs))
             plt.yscale('log')
-            plt.plot(x, freqs)
+            plt.plot(x, sorted_freqs)
             plt.title('Sorted frequency')
             plt.xlabel('Vocab')
             plt.ylabel('Frequency')
