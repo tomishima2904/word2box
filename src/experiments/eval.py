@@ -16,33 +16,24 @@ from pathlib import Path
 # モデルのリロードに必要なモジュールをインポートする
 from language_modeling_with_boxes.models import Word2Box, Word2Vec, Word2VecPooled, Word2BoxConjunction, Word2Gauss
 
-import experiments.set_operation as set_operation
+import experiments.set_operations as set_operations
 from experiments.utils.file_handlers import *
 from datasets import TrainedAllVocabDataset
-from experiments.modules.vocab_libs import VocabLibs
+from experiments.modules.vocab_libs import VocabLibs, VocabLibsWithFreq
+from experiments.modules.result_analyzers import *
 
 
 def eval(args):
-
-    if "cuda" in args.data_device:
-        device = torch.device(args.data_device if torch.cuda.is_available() else "cpu")
-        print(f"Using {device}")
-        torch.backends.cudnn.benchmark = True
-    else:
-        device = "cpu"
-
     # 保存してあるモデルの設定をロードする
     config = json.load(open(args.result_dir + "/config.json", "r"))
 
     # itos (IDから文字列) の辞書を作成
-    print("Loading vocab file...")
-    vocab_stoi = json.load(open("data/" + config["dataset"] + "/vocab_stoi.json", "r"))
-    vocab_libs = VocabLibs(vocab_stoi)
-    vocab_itos = vocab_libs.get_vocab_itos()
+    vocab_libs = VocabLibsWithFreq(f"data/{config['dataset']}/vocab_stoi.json", f"data/{config['dataset']}/vocab_freq.json")
+    vocab_size = vocab_libs.get_vocab_size()
 
     # モデルのインスタンスを作成する
     model = Word2BoxConjunction(
-        vocab_size=len(vocab_stoi),
+        vocab_size=vocab_size,
         embedding_dim=config["embedding_dim"],
         batch_size=config["batch_size"],
         n_gram=config["n_gram"],
@@ -52,10 +43,17 @@ def eval(args):
     )
 
     # 作成したインスタンスに訓練済みモデルのパラメータを読み込む
-    print("Loading model...")
+    print("Loading model ...")
     model_ckpt = torch.load(args.result_dir + "/best_model.ckpt", map_location='cpu')
     model.load_state_dict(model_ckpt['model_state_dict'])
 
+    # 出力用のディレクトリがなければ作成
+    output_dir = f"{args.result_dir}/analysis"
+    if not os.path.isdir(output_dir):
+        os.makedirs(output_dir)
+
+    # 訓練済み埋め込み表現のboxのvolumeを計算
+    compute_allbox_volumes(model, vocab_libs, output_dir, dist_type="relu")
     if args.multi_gpu==1 and "cuda" in args.data_device:
         pass
         # model = DDP(model, device_ids=[0, 1])
