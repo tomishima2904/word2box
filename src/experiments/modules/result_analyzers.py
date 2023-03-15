@@ -1,20 +1,25 @@
 import torch
 from torch import Tensor, LongTensor
+from torch.utils.data import DataLoader
 from typing import Union, List, Dict
 import json
 import matplotlib.pyplot as plt
 from matplotlib import cm
 from tqdm import tqdm
 
+from language_modeling_with_boxes.models import Word2Box, Word2Vec, Word2VecPooled, Word2BoxConjunction, Word2Gauss
+from language_modeling_with_boxes.box.box_wrapper import BoxTensor
+
 from ..utils.file_handlers import *
-from vocab_libs import VocabLibs, VocabLibsWithFreq
+from .vocab_libs import VocabLibs, VocabLibsWithFreq
+from set_operations import SetOperations
 
 
 # Plot similarity
-def plot_similarity(input_dir, stimulus:str, vocab_freq:Dict, title="x"):
+def plot_similarity(save_dir, stimulus:str, vocab_freq:Dict, title="x"):
 
     # Read similarity from csv file
-    similairties_list, header = read_csv(f"{input_dir}/{stimulus}.csv", has_header=True)
+    similairties_list, header = read_csv(f"{save_dir}/{stimulus}.csv", has_header=True)
     words = [row[0] for row in similairties_list]
     scores = [float(row[1]) for row in similairties_list]
 
@@ -49,38 +54,56 @@ def plot_similarity(input_dir, stimulus:str, vocab_freq:Dict, title="x"):
     ax1.legend(handler1 + handler2, label1 + label2, borderaxespad=0.)
     # ax1.set_yscale('log')
 
-    savefile = f"{input_dir}/{stimulus}.png"
+    savefile = f"{save_dir}/{stimulus}.png"
     fig.savefig(savefile)
     print("Plotting has done")
 
 
 def compute_allbox_volumes(model, vocab_libs: VocabLibsWithFreq, output_dir, dist_type: str="abs"):
-    vocab_size = len(vocab_libs.get_vocab_size())
+    vocab_size:int = vocab_libs.get_vocab_size()
     volume_list = torch.zeros(vocab_size, dtype=torch.long)
-    vocab_itos = vocab_libs.get_vocab_itos()
+    vocab_itos:List = vocab_libs.get_vocab_itos()
 
     with torch.no_grad():
-        for i in tqdm(torch.arange(vocab_size), total=len(vocab_size)):
+        for i in tqdm(torch.arange(vocab_size), total=vocab_size):
             emb = model.embeddings_word(i)
             emb_diff = emb.Z-emb.z
             if dist_type == "relu":
                 emb_diff = torch.relu(emb_diff)
-                filename = "largest_relu"
             elif dist_type == "abs":
                 emb_diff = torch.abs(emb_diff)
-                filename = "largest_abs"
             volume_list[i] = torch.sum(emb_diff)
         sorted_emb, indicies = torch.sort(LongTensor(volume_list), descending=True)
         sorted_emb = sorted_emb.to('cpu').detach().numpy().copy()
         indicies = indicies.to('cpu').detach().numpy().copy()
 
-    if not os.path.isdir(f"{output_dir}/analysis"):
-        os.makedirs(f"{output_dir}/analysis")
+    if dist_type == "relu": filename = "largest_relu"
+    elif dist_type == "abs": filename = "largest_abs"
+    output_path = f"{output_dir}/{filename}.csv"
 
-    with open(f"{output_dir}/analysis/{filename}.csv", "w") as f:
-        csv_writer_ = csv.writer(f)
-        csv_writer_.writerow(["id", "word", "volume", "freq"])
+    with open(output_path, "w") as f:
+        csvwriter = csv.writer(f)
+        csvwriter.writerow(["id", "word", "volume", "freq"])
         for emb, i in tqdm(zip(sorted_emb, indicies)):
             if vocab_itos[i] == "<pad>": continue
             if vocab_itos[i] == "<eos>": continue
-            csv_writer_.writerow([i, vocab_itos[i], emb, vocab_libs.vocab_freq[vocab_itos[i]]])
+            csvwriter.writerow([i, vocab_itos[i], emb, vocab_libs.vocab_freq[vocab_itos[i]]])
+        print(f"Successfully written {output_path} !")
+
+    plot_allbox_volumes(output_dir, filename)
+
+
+# Plot volume of boxes by descending order
+def plot_allbox_volumes(save_dir, filename):
+    with open(f"{save_dir}/{filename}.csv", "r") as f:
+        csvreader = csv.reader(f)
+        header = next(csvreader)
+        volumes = [float(row[2]) for row in csvreader]
+        x = range(len(volumes))
+
+        fig, ax = plt.subplots()
+        ax.plot(x, volumes)
+        ax.set_title("Largest boxes")
+        fig.savefig(f"{save_dir}/{filename}.png")
+        print("Plotting has done")
+
