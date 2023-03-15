@@ -107,3 +107,133 @@ def plot_allbox_volumes(save_dir, filename):
         fig.savefig(f"{save_dir}/{filename}.png")
         print("Plotting has done")
 
+
+# 刺激語の共通部分のboxと全ての語彙のboxとの類似度を計算
+def dump_sim_scores(
+        model,
+        vocab_libs,
+        words_list:List,
+        dataloader,
+        output_dir,
+        device='cpu'
+    ):
+
+    ids_tensor: LongTensor = vocab_libs.words_list_to_ids_tensor(words_list).to(device)
+    vocab_itos = vocab_libs.get_vocab_itos()
+
+    for stimuli, stim_ids in zip(words_list, ids_tensor):
+        result = []
+        result.extend(stimuli)
+        scores, labels = _compute_sim_with_vocab(stim_ids.to(device), dataloader, model)
+        scores = scores.to('cpu').detach().numpy().tolist()
+        labels = labels.to('cpu').detach().numpy().tolist()
+
+        output_path = f"{output_dir}/{'_'.join(stimuli)}.csv"
+        with open(output_path, 'w') as fo:
+            stimuli_writer = csv.writer(fo)
+            stimuli_writer.writerow(["labels", "scores"])
+            output_list = [[vocab_itos[label], score] for label, score in zip(labels, scores)]
+            stimuli_writer.writerows(output_list)
+            print(f"Successfully written {output_path} !")
+
+
+def _compute_sim_with_vocab(
+    word_ids: LongTensor,
+    dataloader: DataLoader,
+    model: Union[Word2Box, Word2Vec, Word2VecPooled, Word2BoxConjunction, Word2Gauss],
+) -> Tuple[LongTensor, LongTensor]:
+    """ Output similar scores and labels to box of input words
+
+    Args:
+        words (LongTensor): 刺激語IDのリスト. List of indices of words.
+        dataloader (DataLoader): Vocabulary.
+        model : Trained model.
+
+    Returns:
+        LongTensor: Scores which are the most similar to intersection box of input `words`
+        LongTensor: Labels which are the most similar to intersection box of input `words`
+    """
+
+    device = word_ids.device
+
+    with torch.no_grad():
+
+        intersection_box = SetOperations.intersect_multiple_box(word_ids, model)  # [1, 1, 2, embedding_dim]
+        all_scores = LongTensor([])
+        all_labels = LongTensor([])
+
+        for boxes, labels in tqdm(dataloader):
+
+            # 共通部分と語彙のBoxTensorを作成
+            # Make BoxTensors
+            B = len(boxes)
+            vocab_z: LongTensor = boxes[..., 0, :].unsqueeze(-2).to(device)
+            vocab_Z: LongTensor = boxes[..., 1, :].unsqueeze(-2).to(device)
+            vocab_boxes = BoxTensor.from_zZ(vocab_z, vocab_Z)  # [B, 1, 2, embedding_dim]
+            intersection_z = intersection_box.z.expand(B, -1, -1).to(device)  # [B, 1, embedding_dim]
+            intersection_Z = intersection_box.Z.expand(B, -1, -1).to(device)
+            repeated_intersection_box = BoxTensor.from_zZ(intersection_z, intersection_Z)  # [B, 1, 2, embedding_dim]
+
+            # 類似度を計算
+            # Calculate similarity
+            if model.intersection_temp == 0.0:
+                scores = vocab_boxes.intersection_log_soft_volume(
+                    repeated_intersection_box, temp=model.volume_temp
+                )
+            else:
+                scores = vocab_boxes.gumbel_intersection_log_volume(
+                    repeated_intersection_box,
+                    volume_temp=model.volume_temp,
+                    intersection_temp=model.intersection_temp,
+                )
+
+            scores = scores.squeeze(-1).to('cpu').detach()
+            assert scores.size() == labels.size(), f"can't match size of `scores {scores.size()}` and `labels {labels.size()}`"
+            all_scores = torch.cat([all_scores, scores])
+            all_labels = torch.cat([all_labels, labels.to('cpu').detach()])
+
+        # scores を降順に並び替え、それに伴い labels も並び替える
+        # Sort scores in descending order, also sort labels along with scores
+        all_scores, sorted_indices = torch.sort(all_scores, descending=True)
+        all_labels = all_labels[sorted_indices]
+
+    return all_scores, all_labels
+
+
+def summarize_sim_scores(
+    output_dir,
+    eval_file,
+    words_list,
+    vocab_libs,
+    num_stimuli,
+    num_output=300
+):
+    output_path = f"{output_dir}/{eval_file}.csv"
+    with open(output_path, "w") as f:
+
+        header = []
+        for i in range(num_stimuli): header.append(f"stimulus_{i+1}")
+        for i in range(num_stimuli): header.append(f"id_{i+1}")
+        header.extend(["labels", "scores"])
+
+        csvwriter = csv.writer(f)
+        csvwriter.writerow(header)
+
+        for stimuli in words_list:
+            result = []
+            result.extend(stimuli)
+            stim_ids = vocab_libs.words_list_to_ids_tensor(words_list)
+            result.extend(stim_ids.to('cpu').detach().numpy().tolist())
+
+            sim_scores_path = f"{output_dir}/{'_'.join(stimuli)}.csv"
+            labels_and_scores, _ = read_csv(sim_scores_path, has_header=True)
+            labels_and_scores = labels_and_scores[:num_output]
+            labels = [row[0] for row in labels_and_scores]
+            scores = [row[1] for row in labels_and_scores]
+
+            result.append(labels)
+            result.append(scores)
+
+            csvwriter.writerow(result)
+
+    print(f"Successfully written {output_path} !")

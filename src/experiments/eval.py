@@ -54,73 +54,61 @@ def eval(args):
 
     # 訓練済み埋め込み表現のboxのvolumeを計算
     compute_allbox_volumes(model, vocab_libs, output_dir, dist_type="relu")
+
+
+    # 以下ではGPUを使用して計算
+
+    # 出力用のディレクトリがなければ作成
+    output_dir = f"{args.result_dir}/{args.eval_file}"
+    if not os.path.isdir(output_dir):
+        os.makedirs(output_dir)
+
+    if "cuda" in args.data_device:
+        device = torch.device(args.data_device if torch.cuda.is_available() else "cpu")
+        print(f"Using {device}")
+        torch.backends.cudnn.benchmark = True
+    else:
+        device = "cpu"
+
     if args.multi_gpu==1 and "cuda" in args.data_device:
         pass
         # model = DDP(model, device_ids=[0, 1])
         # model = model.module
 
-    # 語彙のデータローダー
+    # 語彙のデータローダーを作成
     dataloader = DataLoader(
-        dataset= TrainedAllVocabDataset(vocab_stoi, model, device),
+        dataset= TrainedAllVocabDataset(vocab_libs.vocab_stoi, model, device),
         batch_size=args.batch_size,
         shuffle=False,
         num_workers=args.num_workers,
         pin_memory =bool(args.pin_memory),
     )
-    model.to(device)
 
     # 評価用データセットをロード
     dataset_dir = 'data/qualitative_datasets'
     eval_words_list = read_csv(dataset_dir + "/" + args.eval_file + ".csv", has_header=False)
-    eval_ids_list: LongTensor = vocab_libs.words_list_to_ids_tensor(eval_words_list).to(device)
-    assert len(eval_words_list) == len(eval_ids_list), f"cat't match the length of `words_list` {len(eval_words_list)} and `ids_list` {len(eval_ids_list)}"
 
-    output_dir = f"{args.result_dir}/{args.eval_file}"
-    if not os.path.isdir(output_dir):
-        os.makedirs(output_dir)
+    model.to(device)
 
-    # 刺激語の共通部分のboxと全ての語彙のboxとの類似度を計算
-    with open(f"{output_dir}/{args.eval_file}.csv", "w") as f:
+    # 全語彙との類似度を計算してdump
+    dump_sim_scores(model, vocab_libs, eval_words_list, dataloader, output_dir, device=device)
 
-        num_stimuli = eval_ids_list.size(-1)
-        header = []
-        for i in range(num_stimuli): header.append(f"stimulus_{i+1}")
-        for i in range(num_stimuli): header.append(f"id_{i+1}")
-        header.extend(["labels", "scores"])
+    # 刺激語の数
+    if type(eval_words_list[0]) == list:
+        num_stimuli = len(eval_words_list[0][0])
+    else:
+        num_stimuli = len(eval_words_list[0])
 
-        csv_writer = csv.writer(f)
-        csv_writer.writerow(header)
-
-        for stimuli, stim_ids in zip(eval_words_list, eval_ids_list):
-            result = []
-            result.extend(stimuli)
-            scores, labels = set_operation.all_words_similarity(stim_ids.to(device), dataloader, model)
-            scores = scores.to('cpu').detach().numpy().tolist()
-            labels = labels.to('cpu').detach().numpy().tolist()
-
-            if args.output_allscores:
-                with open(f"{output_dir}/{stimuli[0]}.csv", 'w') as fo:
-                    stimuli_writer = csv.writer(fo)
-                    stimuli_writer.writerow(["labels", "scores"])
-                    output_list = [[vocab_itos[label], score] for label, score in zip(labels, scores)]
-                    stimuli_writer.writerows(output_list)
-
-            scores = scores[:args.num_output]
-            labels = labels[:args.num_output]
-
-            result.extend(stim_ids.to('cpu').detach().numpy().tolist())
-            similar_words = [vocab_itos[label] for label in labels]
-            result.append(similar_words)
-            result.append(scores)
-            csv_writer.writerow(result)
+    # dumpされたデータを見やすくするために要約
+    summarize_sim_scores(output_dir, args.eval_file, eval_words_list, num_stimuli, args.num_output)
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--result_dir', type=str, required=True, help="dir path where saved model is")
+    parser.add_argument('--result_dir', type=str, required=True, help="dir path where the saved model is")
     parser.add_argument('--data_device', type=str, default="cpu", help="device type")
-    parser.add_argument('--eval_file', type=str, required=True, help="file path where eval file is")
-    parser.add_argument('--batch_size', type=int, default=16384, help="batch size for evaluating on all vocab")
+    parser.add_argument('--eval_file', type=str, required=True, help="file path where the eval file is")
+    parser.add_argument('--batch_size', type=int, default=16384, help="batch size for evaluating with all vocab")
     parser.add_argument('--num_output', type=int, default=300, help="number of labels and scores to be output")
     parser.add_argument('--num_workers', type=int, default=0, help="number of workers for dataloader")
     parser.add_argument('--output_allscores', type=int, default=1)
