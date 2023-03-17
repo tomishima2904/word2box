@@ -17,7 +17,7 @@ from pathlib import Path
 from language_modeling_with_boxes.models import Word2Box, Word2Vec, Word2VecPooled, Word2BoxConjunction, Word2Gauss
 
 import experiments.set_operations as set_operations
-from experiments.utils.file_handlers import *
+from experiments.utils import file_handlers as fh
 from datasets import TrainedAllVocabDataset
 from experiments.modules.vocab_libs import VocabLibs, VocabLibsWithFreq
 from experiments.modules.result_analyzers import *
@@ -86,7 +86,7 @@ def eval(args):
 
     # 評価用データセットをロード
     dataset_dir = 'data/qualitative_datasets'
-    eval_words_list = read_csv(dataset_dir + "/" + args.eval_file + ".csv", has_header=False)
+    eval_words_list = fh.read_csv(dataset_dir + "/" + args.eval_file + ".csv", has_header=False)
 
     model.to(device)
 

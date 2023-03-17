@@ -1,16 +1,19 @@
 import torch
 from torch import Tensor, LongTensor
 from torch.utils.data import DataLoader
-from typing import Union, List, Dict
+from typing import Union, List, Dict, Tuple
 import json
+import csv
 import matplotlib.pyplot as plt
 from matplotlib import cm
 from tqdm import tqdm
+import numpy as np
+import os
 
 from language_modeling_with_boxes.models import Word2Box, Word2Vec, Word2VecPooled, Word2BoxConjunction, Word2Gauss
 from language_modeling_with_boxes.box.box_wrapper import BoxTensor
 
-from ..utils.file_handlers import *
+from ..utils import file_handlers as fh
 from .vocab_libs import VocabLibs, VocabLibsWithFreq
 from set_operations import SetOperations
 
@@ -19,7 +22,7 @@ from set_operations import SetOperations
 def plot_similarity(save_dir, stimulus:str, vocab_freq:Dict, title="x"):
 
     # Read similarity from csv file
-    similairties_list, header = read_csv(f"{save_dir}/{stimulus}.csv", has_header=True)
+    similairties_list, header = fh.read_csv(f"{save_dir}/{stimulus}.csv", has_header=True)
     words = [row[0] for row in similairties_list]
     scores = [float(row[1]) for row in similairties_list]
 
@@ -77,8 +80,10 @@ def compute_allbox_volumes(model, vocab_libs: VocabLibsWithFreq, output_dir, dis
         sorted_emb = sorted_emb.to('cpu').detach().numpy().copy()
         indicies = indicies.to('cpu').detach().numpy().copy()
 
-    if dist_type == "relu": filename = "largest_relu"
-    elif dist_type == "abs": filename = "largest_abs"
+    if dist_type == "relu":
+        filename = "largest_relu"
+    elif dist_type == "abs":
+        filename = "largest_abs"
     output_path = f"{output_dir}/{filename}.csv"
 
     with open(output_path, "w") as f:
@@ -115,7 +120,7 @@ def dump_sim_scores(
         words_list:List,
         dataloader,
         output_dir,
-        device='cpu'
+        device='cpu',
     ):
 
     ids_tensor: LongTensor = vocab_libs.words_list_to_ids_tensor(words_list).to(device)
@@ -206,7 +211,7 @@ def summarize_sim_scores(
     words_list,
     vocab_libs,
     num_stimuli,
-    num_output=300
+    num_output=300,
 ):
     output_path = f"{output_dir}/{eval_file}.csv"
     with open(output_path, "w") as f:
@@ -226,7 +231,7 @@ def summarize_sim_scores(
             result.extend(stim_ids.to('cpu').detach().numpy().tolist())
 
             sim_scores_path = f"{output_dir}/{'_'.join(stimuli)}.csv"
-            labels_and_scores, _ = read_csv(sim_scores_path, has_header=True)
+            labels_and_scores, _ = fh.read_csv(sim_scores_path, has_header=True)
             labels_and_scores = labels_and_scores[:num_output]
             labels = [row[0] for row in labels_and_scores]
             scores = [row[1] for row in labels_and_scores]
