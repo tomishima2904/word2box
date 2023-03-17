@@ -28,13 +28,13 @@ class TrainedAllVocabDataset(Dataset):
         self.device = device
 
 
-    def __getitem__(self, idx) -> LongTensor:
+    def __getitem__(self, idx):
         with torch.no_grad():
             # Embedding all vocab using trained model
             label: LongTensor =  self.vocab_ids[idx]
             box: BoxTensor = self.model.embeddings_word(label)
 
-            # Convert TensorBox to LongTensor size of which is [len(vocab_stoi), 2, embedding_dim]
+            # Convert TensorBox to Tensor size of which is [len(vocab_stoi), 2, embedding_dim]
             box = torch.stack([box.z, box.Z], dim=-2)
 
             return box, label
