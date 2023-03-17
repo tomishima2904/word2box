@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 class VocabLibs(object):
     def __init__(self, vocab_stoi_path: str) -> None:
         super().__init__()
-        print("Vocab loading ...")
+        print("Loading vocab ...")
         self.vocab_stoi: Dict = json.load(open(vocab_stoi_path, "r"))
 
 
