@@ -62,7 +62,9 @@ def plot_similarity(save_dir, stimulus:str, vocab_freq:Dict, title="x"):
     print("Plotting has done")
 
 
-def compute_allbox_volumes(model, vocab_libs: VocabLibsWithFreq, output_dir, dist_type: str="abs"):
+def compute_allbox_volumes(
+        model, vocab_libs: VocabLibsWithFreq,
+        output_dir, dist_type: str="abs"):
     vocab_size:int = vocab_libs.get_vocab_size()
     volume_list = torch.zeros(vocab_size, dtype=torch.long)
     vocab_itos:List = vocab_libs.get_vocab_itos()
@@ -92,7 +94,8 @@ def compute_allbox_volumes(model, vocab_libs: VocabLibsWithFreq, output_dir, dis
         for emb, i in tqdm(zip(sorted_emb, indicies)):
             if vocab_itos[i] == "<pad>": continue
             if vocab_itos[i] == "<eos>": continue
-            csvwriter.writerow([i, vocab_itos[i], emb, vocab_libs.vocab_freq[vocab_itos[i]]])
+            row = [i, vocab_itos[i], emb, vocab_libs.vocab_freq[vocab_itos[i]]]
+            csvwriter.writerow(row)
         print(f"Successfully written {output_path} !")
 
     plot_allbox_volumes(output_dir, filename)
@@ -193,7 +196,8 @@ def _compute_sim_with_vocab(
                 )
 
             scores = scores.squeeze(-1).to('cpu').detach()
-            assert scores.size() == labels.size(), f"can't match size of `scores {scores.size()}` and `labels {labels.size()}`"
+            assert scores.size() == labels.size(), \
+                f"can't match size of `scores {scores.size()}` and `labels {labels.size()}`"
             all_scores = torch.cat([all_scores, scores])
             all_labels = torch.cat([all_labels, labels.to('cpu').detach()])
 
@@ -288,7 +292,8 @@ def dump_boxes_cenoff(
         output_dir,
         output_file="boxes_cenoff.csv",
     ):
-    assert model.box_type in ("CenterBoxTensor", "CenterSigmoidBoxTensor"), "Box type should be `CenterBoxTensor` or `CenterSigmoidBoxTensor`"
+    assert model.box_type in ("CenterBoxTensor", "CenterSigmoidBoxTensor"), \
+        "Box type should be `CenterBoxTensor` or `CenterSigmoidBoxTensor`"
 
     model.to('cpu')
 

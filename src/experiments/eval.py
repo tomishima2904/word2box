@@ -14,7 +14,8 @@ from pathlib import Path
 
 
 # モデルのリロードに必要なモジュールをインポートする
-from language_modeling_with_boxes.models import Word2Box, Word2Vec, Word2VecPooled, Word2BoxConjunction, Word2Gauss
+from language_modeling_with_boxes.models import \
+    Word2Box, Word2Vec, Word2VecPooled, Word2BoxConjunction, Word2Gauss
 
 import experiments.set_operations as set_operations
 from experiments.utils import file_handlers as fh
@@ -28,7 +29,8 @@ def eval(args):
     config = json.load(open(args.result_dir + "/config.json", "r"))
 
     # itos (IDから文字列) の辞書を作成
-    vocab_libs = VocabLibsWithFreq(f"data/{config['dataset']}/vocab_stoi.json", f"data/{config['dataset']}/vocab_freq.json")
+    vocab_libs = VocabLibsWithFreq(f"data/{config['dataset']}/vocab_stoi.json",
+                                   f"data/{config['dataset']}/vocab_freq.json")
     vocab_size = vocab_libs.get_vocab_size()
 
     # モデルのインスタンスを作成する
