@@ -20,7 +20,7 @@ import experiments.set_operations as set_operations
 from experiments.utils import file_handlers as fh
 from datasets import TrainedAllVocabDataset
 from experiments.modules.vocab_libs import VocabLibs, VocabLibsWithFreq
-from experiments.modules.result_analyzers import *
+from experiments.modules import result_analyzers as ra
 
 
 def eval(args):
@@ -53,16 +53,26 @@ def eval(args):
         os.makedirs(output_dir)
 
     # 訓練済み埋め込み表現のboxのvolumeを計算
-    compute_allbox_volumes(model, vocab_libs, output_dir, dist_type="relu")
+    ra.compute_allbox_volumes(model, vocab_libs, output_dir, dist_type="relu")
 
 
-    # 以下ではGPUを使用して計算
+    # 以下では評価用データセットを利用
+    # 評価用データセットをロード
+    dataset_dir = 'data/qualitative_datasets'
+    words_list = fh.read_csv(dataset_dir + "/" + args.eval_file + ".csv", has_header=False)
+    words = words_list[0]
 
     # 出力用のディレクトリがなければ作成
     output_dir = f"{args.result_dir}/{args.eval_file}"
     if not os.path.isdir(output_dir):
         os.makedirs(output_dir)
 
+    # 訓練済みのBoxを出力
+    ra.dump_boxes_zZ(model, vocab_libs, words, output_dir)
+    if model.box_type in ("CenterBoxTensor", "CenterSigmoidBoxTensor"):
+        ra.dump_boxes_cenoff(model, vocab_libs, words, output_dir)
+
+    # 以下ではGPUを使用して計算
     if "cuda" in args.data_device:
         device = torch.device(args.data_device if torch.cuda.is_available() else "cpu")
         print(f"Using {device}")
@@ -84,23 +94,19 @@ def eval(args):
         pin_memory =bool(args.pin_memory),
     )
 
-    # 評価用データセットをロード
-    dataset_dir = 'data/qualitative_datasets'
-    eval_words_list = fh.read_csv(dataset_dir + "/" + args.eval_file + ".csv", has_header=False)
-
     model.to(device)
 
     # 全語彙との類似度を計算してdump
-    dump_sim_scores(model, vocab_libs, eval_words_list, dataloader, output_dir, device=device)
+    ra.dump_sim_scores(model, vocab_libs, words_list, dataloader, output_dir, device=device)
 
     # 刺激語の数
-    if type(eval_words_list[0]) == list:
-        num_stimuli = len(eval_words_list[0][0])
+    if type(words_list[0]) == list:
+        num_stimuli = len(words_list[0][0])
     else:
-        num_stimuli = len(eval_words_list[0])
+        num_stimuli = len(words_list[0])
 
     # dumpされたデータを見やすくするために要約
-    summarize_sim_scores(output_dir, args.eval_file, eval_words_list, num_stimuli, args.num_output)
+    ra.summarize_sim_scores(vocab_libs, words_list, output_dir, args.eval_file, num_stimuli, args.num_output)
 
 
 if __name__ == '__main__':
