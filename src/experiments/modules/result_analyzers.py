@@ -271,9 +271,11 @@ def dump_boxes_zZ(
         os.makedirs(output_dir)
 
     # Write boxes
-    with open(f"{output_dir}/{output_file}", "w") as f:
+    output_path = f"{output_dir}/{output_file}"
+    with open(output_path, "w") as f:
         csvwriter = csv.writer(f)
         csvwriter.writerow(labels)
         for z, Z in zip(all_z, all_Z):
             embs = np.concatenate([z, Z])
             csvwriter.writerow(embs)
+    print(f"Successfully written {output_path} !")
