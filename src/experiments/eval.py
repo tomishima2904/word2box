@@ -32,15 +32,13 @@ def eval(args):
     vocab_size = vocab_libs.get_vocab_size()
 
     # モデルのインスタンスを作成する
-    model = Word2BoxConjunction(
-        vocab_size=vocab_size,
-        embedding_dim=config["embedding_dim"],
-        batch_size=config["batch_size"],
-        n_gram=config["n_gram"],
-        intersection_temp=config["int_temp"],
-        volume_temp=config["vol_temp"],
-        box_type=config["box_type"],
-    )
+    model = Word2BoxConjunction(vocab_size=vocab_size,
+                                embedding_dim=config["embedding_dim"],
+                                batch_size=config["batch_size"],
+                                n_gram=config["n_gram"],
+                                intersection_temp=config["int_temp"],
+                                volume_temp=config["vol_temp"],
+                                box_type=config["box_type"])
 
     # 作成したインスタンスに訓練済みモデルのパラメータを読み込む
     print("Loading model ...")
@@ -86,13 +84,11 @@ def eval(args):
         # model = model.module
 
     # 語彙のデータローダーを作成
-    dataloader = DataLoader(
-        dataset= TrainedAllVocabDataset(vocab_libs.vocab_stoi, model, device),
-        batch_size=args.batch_size,
-        shuffle=False,
-        num_workers=args.num_workers,
-        pin_memory =bool(args.pin_memory),
-    )
+    dataloader = DataLoader(dataset= TrainedAllVocabDataset(vocab_libs.vocab_stoi, model, device),
+                            batch_size=args.batch_size,
+                            shuffle=False,
+                            num_workers=args.num_workers,
+                            pin_memory =bool(args.pin_memory))
 
     model.to(device)
 

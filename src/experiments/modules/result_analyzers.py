@@ -143,10 +143,10 @@ def dump_sim_scores(
 
 
 def _compute_sim_with_vocab(
-    word_ids: LongTensor,
-    dataloader: DataLoader,
-    model: Union[Word2Box, Word2Vec, Word2VecPooled, Word2BoxConjunction, Word2Gauss],
-) -> Tuple[LongTensor, LongTensor]:
+        word_ids: LongTensor,
+        dataloader: DataLoader,
+        model: Union[Word2Box, Word2Vec, Word2VecPooled, Word2BoxConjunction, Word2Gauss],
+    ) -> Tuple[LongTensor, LongTensor]:
     """ Output similar scores and labels to box of input words
 
     Args:
@@ -206,13 +206,13 @@ def _compute_sim_with_vocab(
 
 
 def summarize_sim_scores(
-    vocab_libs,
-    words_list,
-    output_dir,
-    eval_file,
-    num_stimuli,
-    num_output=300,
-):
+        vocab_libs,
+        words_list,
+        output_dir,
+        eval_file,
+        num_stimuli,
+        num_output=300,
+    ):
     output_path = f"{output_dir}/{eval_file}.csv"
     with open(output_path, "w") as f:
 
@@ -245,12 +245,12 @@ def summarize_sim_scores(
 
 
 def dump_boxes_zZ(
-    model,
-    vocab_libs,
-    words: List,  # This arg should be 1-dim list
-    output_dir,
-    output_file="boxes_zZ.csv",
-):
+        model,
+        vocab_libs,
+        words: List,  # This arg should be 1-dim list
+        output_dir,
+        output_file="boxes_zZ.csv",
+    ):
     model.to('cpu')
 
     # Embed words_list
@@ -282,12 +282,12 @@ def dump_boxes_zZ(
 
 
 def dump_boxes_cenoff(
-    model,
-    vocab_libs,
-    words: List,  # This arg should be 1-dim list
-    output_dir,
-    output_file="boxes_cenoff.csv",
-):
+        model,
+        vocab_libs,
+        words: List,  # This arg should be 1-dim list
+        output_dir,
+        output_file="boxes_cenoff.csv",
+    ):
     assert model.box_type in ("CenterBoxTensor", "CenterSigmoidBoxTensor"), "Box type should be `CenterBoxTensor` or `CenterSigmoidBoxTensor`"
 
     model.to('cpu')
