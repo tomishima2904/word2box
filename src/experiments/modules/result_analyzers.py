@@ -206,10 +206,10 @@ def _compute_sim_with_vocab(
 
 
 def summarize_sim_scores(
+    vocab_libs,
+    words_list,
     output_dir,
     eval_file,
-    words_list,
-    vocab_libs,
     num_stimuli,
     num_output=300,
 ):
@@ -242,3 +242,38 @@ def summarize_sim_scores(
             csvwriter.writerow(result)
 
     print(f"Successfully written {output_path} !")
+
+
+def dump_boxes_zZ(
+    model,
+    vocab_libs,
+    words: List,  # This arg should be 1-dim list
+    output_dir,
+    output_file="boxes_zZ.csv",
+):
+    model.to('cpu')
+
+    # Embed words_list
+    ids_tensor: LongTensor = vocab_libs.words_list_to_ids_tensor(words).to('cpu')
+    word_embs = model.embeddings_word(ids_tensor)
+    all_z = word_embs.z
+    all_z = torch.t(all_z).to('cpu').detach().numpy()
+    all_Z = word_embs.Z
+    all_Z = torch.t(all_Z).to('cpu').detach().numpy()
+
+    # Make header
+    labels = [f"{word}-" for word in words]
+    for word in words:
+        labels.append(f"{word}+")
+
+    # Make a dir if not exists
+    if not os.path.isdir(output_dir):
+        os.makedirs(output_dir)
+
+    # Write boxes
+    with open(f"{output_dir}/{output_file}", "w") as f:
+        csvwriter = csv.writer(f)
+        csvwriter.writerow(labels)
+        for z, Z in zip(all_z, all_Z):
+            embs = np.concatenate([z, Z])
+            csvwriter.writerow(embs)
