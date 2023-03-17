@@ -78,7 +78,7 @@ def compute_allbox_volumes(
             elif dist_type == "abs":
                 emb_diff = torch.abs(emb_diff)
             volume_list[i] = torch.sum(emb_diff)
-        sorted_emb, indicies = torch.sort(LongTensor(volume_list), descending=True)
+        sorted_emb, indicies = torch.sort(Tensor(volume_list), descending=True)
         sorted_emb = sorted_emb.to('cpu').detach().numpy().copy()
         indicies = indicies.to('cpu').detach().numpy().copy()
 
@@ -158,7 +158,7 @@ def _compute_sim_with_vocab(
         model : Trained model.
 
     Returns:
-        LongTensor: Scores which are the most similar to intersection box of input `words`
+        Tensor: Scores which are the most similar to intersection box of input `words`
         LongTensor: Labels which are the most similar to intersection box of input `words`
     """
 
@@ -167,7 +167,7 @@ def _compute_sim_with_vocab(
     with torch.no_grad():
 
         intersection_box = SetOperations.intersect_multiple_box(word_ids, model)  # [1, 1, 2, embedding_dim]
-        all_scores = LongTensor([])
+        all_scores = Tensor([])
         all_labels = LongTensor([])
 
         for boxes, labels in tqdm(dataloader):
@@ -175,8 +175,8 @@ def _compute_sim_with_vocab(
             # 共通部分と語彙のBoxTensorを作成
             # Make BoxTensors
             B = len(boxes)
-            vocab_z: LongTensor = boxes[..., 0, :].unsqueeze(-2).to(device)
-            vocab_Z: LongTensor = boxes[..., 1, :].unsqueeze(-2).to(device)
+            vocab_z: Tensor = boxes[..., 0, :].unsqueeze(-2).to(device)
+            vocab_Z: Tensor = boxes[..., 1, :].unsqueeze(-2).to(device)
             vocab_boxes = BoxTensor.from_zZ(vocab_z, vocab_Z)  # [B, 1, 2, embedding_dim]
             intersection_z = intersection_box.z.expand(B, -1, -1).to(device)  # [B, 1, embedding_dim]
             intersection_Z = intersection_box.Z.expand(B, -1, -1).to(device)
