@@ -365,8 +365,16 @@ def _softplus_inverse(t: torch.Tensor, beta=1.0, threshold=20):
 class CenterBoxTensor(BoxTensor):
 
   @property
+  def box_type(self):
+    return "CenterBoxTensor"
+
+  @property
   def center(self) -> Tensor:
     return self.data[..., 0, :]
+
+  @property
+  def offset(self) -> Tensor:
+    return self.data[..., 1, :]
 
   @property
   def z(self) -> Tensor:
@@ -384,8 +392,16 @@ class CenterBoxTensor(BoxTensor):
 class CenterSigmoidBoxTensor(BoxTensor):
 
   @property
+  def box_type(self):
+    return "CenterSigmoidBoxTensor"
+
+  @property
   def center(self) -> Tensor:
     return self.data[..., 0, :]
+
+  @property
+  def offset(self) -> Tensor:
+    return self.data[..., 1, :]
 
   @property
   def z(self) -> Tensor:
