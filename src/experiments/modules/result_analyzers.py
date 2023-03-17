@@ -279,3 +279,42 @@ def dump_boxes_zZ(
             embs = np.concatenate([z, Z])
             csvwriter.writerow(embs)
     print(f"Successfully written {output_path} !")
+
+
+def dump_boxes_cenoff(
+    model,
+    vocab_libs,
+    words: List,  # This arg should be 1-dim list
+    output_dir,
+    output_file="boxes_cenoff.csv",
+):
+    assert model.box_type in ("CenterBoxTensor", "CenterSigmoidBoxTensor"), "Box type should be `CenterBoxTensor` or `CenterSigmoidBoxTensor`"
+
+    model.to('cpu')
+
+    # Embed words_list
+    ids_tensor: LongTensor = vocab_libs.words_list_to_ids_tensor(words).to('cpu')
+    word_embs = model.embeddings_word(ids_tensor)
+    all_cen = word_embs.center
+    all_cen = torch.t(all_cen).to('cpu').detach().numpy()
+    all_off = word_embs.offset
+    all_off = torch.t(all_off).to('cpu').detach().numpy()
+
+    # Make header
+    labels = [f"{word}Ct" for word in words]
+    for word in words:
+        labels.append(f"{word}Of")
+
+    # Make a dir if not exists
+    if not os.path.isdir(output_dir):
+        os.makedirs(output_dir)
+
+    # Write boxes
+    output_path = f"{output_dir}/{output_file}"
+    with open(output_path, "w") as f:
+        csvwriter = csv.writer(f)
+        csvwriter.writerow(labels)
+        for cen, off in zip(all_cen, all_off):
+            embs = np.concatenate([cen, off])
+            csvwriter.writerow(embs)
+    print(f"Successfully written {output_path} !")
