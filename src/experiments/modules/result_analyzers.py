@@ -323,3 +323,72 @@ def dump_boxes_cenoff(
             embs = np.concatenate([cen, off])
             csvwriter.writerow(embs)
     print(f"Successfully written {output_path} !")
+
+
+def dump_centers_with_w2v(
+        model,
+        vocab_libs,
+        words: List,  # This arg should be 1-dim list
+        w2v_dir,
+        output_dir,
+        w2v_file="all_vectors.txt",
+        output_file="centers_with_w2v.csv",
+    ):
+    assert model.box_type in ("CenterBoxTensor", "CenterSigmoidBoxTensor"), \
+        "Box type should be `CenterBoxTensor` or `CenterSigmoidBoxTensor`"
+
+    # Embed words with BoxEmbedding
+    ids_tensor: LongTensor = vocab_libs.words_list_to_ids_tensor(words).to('cpu')
+    word_embs = model.embeddings_word(ids_tensor)
+    all_cen = word_embs.center
+    all_cen = torch.t(all_cen).to('cpu').detach().numpy()
+
+    # Embed words with Word2Vec
+    word2vec_model = load_word2vec(w2v_dir, w2v_file, model_type="torch")
+    w2v_embs = word2vec_model[ids_tensor]
+    w2v_embs = torch.t(w2v_embs).to('cpu').detach().numpy()
+
+    assert all_cen.shape == w2v_embs.shape, \
+        f"all_cen.size()=={all_cen.shape}, w2v_embs.size()=={w2v_embs.shape}"
+
+    # 奇数列に中心ベクトル, 偶数列にWord2Vecのベクトルを割り当てる
+    embeddings = np.zeros([all_cen.shape[0], 2*all_cen.shape[1]])
+    embeddings[:, 0::2] = w2v_embs
+    embeddings[:, 1::2] = all_cen
+
+    # Make header
+    labels = []
+    for word in words:
+        labels.append(f"{word}W2V")
+        labels.append(f"{word}Ct")
+
+    # Make a dir if not exists
+    if not os.path.isdir(output_dir):
+        os.makedirs(output_dir)
+
+    # Write embeddings
+    output_path = f"{output_dir}/{output_file}"
+    fh.write_csv(output_path, data=embeddings, header=labels)
+
+
+def load_word2vec(w2v_dir, w2v_file="all_vectors.txt", model_type="list"):
+    print("Loading trained Word2Vec model ...")
+    w2v_path = f"{w2v_dir}/{w2v_file}"
+    with open(w2v_path, 'r') as f:
+        header = next(f).split(' ')
+        embeddings = f.readlines()
+        vocab_size = header[0]
+
+        embeddings = [embedding.split(' ')[1:] for embedding in embeddings]
+        embeddings = np.array(embeddings, dtype=np.float32)
+        if model_type == "numpy":
+            return embeddings
+
+        if model_type == "list":
+            return embeddings.tolist()
+
+        embeddings = torch.from_numpy(embeddings)
+        if model_type == "torch":
+            return Tensor(embeddings)
+        else:
+            raise ValueError(f"Invalid model type {model_type}")
