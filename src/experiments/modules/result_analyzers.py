@@ -10,7 +10,8 @@ from tqdm import tqdm
 import numpy as np
 import os
 
-from language_modeling_with_boxes.models import Word2Box, Word2Vec, Word2VecPooled, Word2BoxConjunction, Word2Gauss
+from language_modeling_with_boxes.models import \
+    Word2Box, Word2Vec, Word2VecPooled, Word2BoxConjunction, Word2Gauss
 from language_modeling_with_boxes.box.box_wrapper import BoxTensor
 
 from ..utils import file_handlers as fh
@@ -22,7 +23,8 @@ from set_operations import SetOperations
 def plot_similarity(save_dir, stimulus:str, vocab_freq:Dict, title="x"):
 
     # Read similarity from csv file
-    similairties_list, header = fh.read_csv(f"{save_dir}/{stimulus}.csv", has_header=True)
+    similairties_list, header = fh.read_csv(f"{save_dir}/{stimulus}.csv",
+                                            has_header=True)
     words = [row[0] for row in similairties_list]
     scores = [float(row[1]) for row in similairties_list]
 
@@ -63,31 +65,56 @@ def plot_similarity(save_dir, stimulus:str, vocab_freq:Dict, title="x"):
 
 
 def compute_allbox_volumes(
-        model, vocab_libs: VocabLibsWithFreq,
-        output_dir, dist_type: str="abs"):
-    vocab_size:int = vocab_libs.get_vocab_size()
-    volume_list = torch.zeros(vocab_size, dtype=torch.long)
+        vocab_libs: VocabLibsWithFreq,
+        dataloader,
+        box_type,
+        device,
+        output_dir,
+        dist_type: str="abs"
+    ):
+
+    volume_list = []
     vocab_itos:List = vocab_libs.get_vocab_itos()
 
     with torch.no_grad():
-        for i in tqdm(torch.arange(vocab_size), total=vocab_size):
-            emb = model.embeddings_word(i)
-            emb_diff = emb.Z-emb.z
+
+        # Compute volumes of all boxes
+        for boxes, labels in tqdm(dataloader):
+            B = len(boxes)
+
+            if box_type in ("CenterBoxTensor", "CenterSigmoidBoxTensor"):
+                center = boxes[..., 0, :].to(device)
+                offset = boxes[..., 1, :].to(device)
+                z = center - offset
+                Z = center + offset
+            else:
+                z = boxes[..., 0, :].to(device)
+                Z = boxes[..., 1, :].to(device)
+
+            emb_diffs = Z - z
             if dist_type == "relu":
-                emb_diff = torch.relu(emb_diff)
+                emb_diffs = torch.relu(emb_diffs)
             elif dist_type == "abs":
-                emb_diff = torch.abs(emb_diff)
-            volume_list[i] = torch.sum(emb_diff)
-        sorted_emb, indicies = torch.sort(Tensor(volume_list), descending=True)
+                emb_diffs = torch.abs(emb_diffs)
+            else:
+                raise ValueError(f"Invalid distance type {dist_type}")
+
+            volume_list.extend(torch.sum(emb_diffs, dim=-1).to('cpu'))
+
+        # Sort volumes by descending order
+        volume_list = Tensor(volume_list, device='cpu')
+        sorted_emb, indicies = torch.sort(volume_list, descending=True)
         sorted_emb = sorted_emb.to('cpu').detach().numpy().copy()
         indicies = indicies.to('cpu').detach().numpy().copy()
 
+    # Set output file name
     if dist_type == "relu":
         filename = "largest_relu"
     elif dist_type == "abs":
         filename = "largest_abs"
     output_path = f"{output_dir}/{filename}.csv"
 
+    # Dump volumes
     with open(output_path, "w") as f:
         csvwriter = csv.writer(f)
         csvwriter.writerow(["id", "word", "volume", "freq"])
@@ -140,7 +167,8 @@ def dump_sim_scores(
         with open(output_path, 'w') as fo:
             stimuli_writer = csv.writer(fo)
             stimuli_writer.writerow(["labels", "scores"])
-            output_list = [[vocab_itos[label], score] for label, score in zip(labels, scores)]
+            output_list = [[vocab_itos[label], score] \
+                           for label, score in zip(labels, scores)]
             stimuli_writer.writerows(output_list)
             print(f"Successfully written {output_path} !")
 
@@ -158,8 +186,8 @@ def _compute_sim_with_vocab(
         model : Trained model.
 
     Returns:
-        Tensor: Scores which are the most similar to intersection box of input `words`
-        LongTensor: Labels which are the most similar to intersection box of input `words`
+        Tensor: Similarity scores by descending order
+        LongTensor: Labels of similarity scores
     """
 
     device = word_ids.device
@@ -169,14 +197,21 @@ def _compute_sim_with_vocab(
         intersection_box = SetOperations.intersect_multiple_box(word_ids, model)  # [1, 1, 2, embedding_dim]
         all_scores = Tensor([])
         all_labels = LongTensor([])
+        box_type = model.box_type
 
         for boxes, labels in tqdm(dataloader):
 
             # 共通部分と語彙のBoxTensorを作成
             # Make BoxTensors
             B = len(boxes)
-            vocab_z: Tensor = boxes[..., 0, :].unsqueeze(-2).to(device)
-            vocab_Z: Tensor = boxes[..., 1, :].unsqueeze(-2).to(device)
+            if box_type in ("CenterBoxTensor", "CenterSigmoidBoxTensor"):
+                center = boxes[..., 0, :].unsqueeze(-2).to(device)
+                offset = boxes[..., 1, :].unsqueeze(-2).to(device)
+                vocab_z: Tensor = center - offset
+                vocab_Z: Tensor = center + offset
+            else:
+                vocab_z: Tensor = boxes[..., 0, :].unsqueeze(-2).to(device)
+                vocab_Z: Tensor = boxes[..., 1, :].unsqueeze(-2).to(device)
             vocab_boxes = BoxTensor.from_zZ(vocab_z, vocab_Z)  # [B, 1, 2, embedding_dim]
             intersection_z = intersection_box.z.expand(B, -1, -1).to(device)  # [B, 1, embedding_dim]
             intersection_Z = intersection_box.Z.expand(B, -1, -1).to(device)

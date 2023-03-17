@@ -47,13 +47,35 @@ def eval(args):
     model_ckpt = torch.load(args.result_dir + "/best_model.ckpt", map_location='cpu')
     model.load_state_dict(model_ckpt['model_state_dict'])
 
+    # GPUを使用して計算
+    if "cuda" in args.data_device:
+        device = torch.device(args.data_device if torch.cuda.is_available() else "cpu")
+        print(f"Using {device}")
+        torch.backends.cudnn.benchmark = True
+    else:
+        device = "cpu"
+
+    if args.multi_gpu==1 and "cuda" in args.data_device:
+        pass
+        # model = DDP(model, device_ids=[0, 1])
+        # model = model.module
+
+    model.to(device)
+
+    # 語彙のデータローダーを作成
+    dataloader = DataLoader(dataset= TrainedAllVocabDataset(vocab_libs.vocab_stoi, model, device),
+                            batch_size=args.batch_size,
+                            shuffle=False,
+                            num_workers=args.num_workers,
+                            pin_memory =bool(args.pin_memory))
+
     # 出力用のディレクトリがなければ作成
     output_dir = f"{args.result_dir}/analysis"
     if not os.path.isdir(output_dir):
         os.makedirs(output_dir)
 
     # 訓練済み埋め込み表現のboxのvolumeを計算
-    ra.compute_allbox_volumes(model, vocab_libs, output_dir, dist_type="relu")
+    ra.compute_allbox_volumes(vocab_libs, dataloader, model.box_type, device, output_dir, dist_type="relu")
 
 
     # 以下では評価用データセットを利用
@@ -71,28 +93,8 @@ def eval(args):
     ra.dump_boxes_zZ(model, vocab_libs, words, output_dir)
     if model.box_type in ("CenterBoxTensor", "CenterSigmoidBoxTensor"):
         ra.dump_boxes_cenoff(model, vocab_libs, words, output_dir)
-
-    # 以下ではGPUを使用して計算
-    if "cuda" in args.data_device:
-        device = torch.device(args.data_device if torch.cuda.is_available() else "cpu")
-        print(f"Using {device}")
-        torch.backends.cudnn.benchmark = True
-    else:
-        device = "cpu"
-
-    if args.multi_gpu==1 and "cuda" in args.data_device:
-        pass
-        # model = DDP(model, device_ids=[0, 1])
-        # model = model.module
-
-    # 語彙のデータローダーを作成
-    dataloader = DataLoader(dataset= TrainedAllVocabDataset(vocab_libs.vocab_stoi, model, device),
-                            batch_size=args.batch_size,
-                            shuffle=False,
-                            num_workers=args.num_workers,
-                            pin_memory =bool(args.pin_memory))
-
-    model.to(device)
+        if args.w2v_dir is not None:
+            ra.dump_centers_with_w2v(model, vocab_libs, words, args.w2v_dir, output_dir)
 
     # 全語彙との類似度を計算してdump
     ra.dump_sim_scores(model, vocab_libs, words_list, dataloader, output_dir, device=device)
@@ -118,6 +120,7 @@ if __name__ == '__main__':
     parser.add_argument('--output_allscores', type=int, default=1)
     parser.add_argument('--pin_memory', type=int, default=0, help="1 if you use pin memory in dataloader")
     parser.add_argument('--multi_gpu', type=int, default=0, help="1 if you use multi gpu")
+    parser.add_argument('--w2v_dir', type=str, default=None, help="dir path where the trained word2vec model is")
     args = parser.parse_args()
 
     eval(args)
