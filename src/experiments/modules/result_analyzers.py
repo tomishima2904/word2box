@@ -161,7 +161,7 @@ def dump_sim_scores(
         scores = scores.to('cpu').detach().numpy().tolist()
         labels = labels.to('cpu').detach().numpy().tolist()
 
-        output_path = f"{output_dir}/{'_'.join(stimuli)}.csv"
+        output_path = f"{output_dir}/sims_{'_'.join(stimuli)}.csv"
         with open(output_path, 'w') as fo:
             stimuli_writer = csv.writer(fo)
             stimuli_writer.writerow(["labels", "scores"])
@@ -367,6 +367,42 @@ def dump_boxes_cenoff(
     output_path = f"{output_dir}/{output_file}"
     fh.write_csv(output_path, results, header=labels)
 
+
+def plot_eachdim_of_boxes(
+        model,
+        vocab_libs,
+        words: List,  # This arg should be 1-dim list
+        output_dir,
+        output_file: str=None,
+    ):
+
+    model.to('cpu')
+
+    # Embed words
+    ids_tensor: LongTensor = vocab_libs.words_list_to_ids_tensor(words).to('cpu')
+    word_embs = model.embeddings_word(ids_tensor)
+    zs = word_embs.z.to('cpu').detach().numpy()
+    Zs = word_embs.Z.to('cpu').detach().numpy()
+
+    # Set properties
+    fig, ax = plt.subplots()
+    dim = zs.shape[-1]
+    for z, Z in zip(zs, Zs):
+        for i in range(dim):
+            if Z[i] > z[i]:
+                ax.bar(i, Z[i]-z[i], bottom=z[i], color='b', alpha=0.5, align='center')
+
+    ax.set_xlabel('Dimensions')
+    ax.set_ylabel('Box position')
+    ax.set_title(f"Box(es) of {(', ').join(words)}")
+    ax.grid(True)
+
+    # Output file
+    if output_file is None:
+        output_file = f"boxes_{('_').join(words)}.png"
+    output_path = f"{output_dir}/{output_file}"
+    fig.savefig(output_path, )
+    print(f"Successfully plotted {output_path}")
 
 
 def dump_centers_with_w2v(
