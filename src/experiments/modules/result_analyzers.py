@@ -83,15 +83,13 @@ def compute_allbox_volumes(
             B = len(boxes)
 
             if box_type in ("CenterBoxTensor", "CenterSigmoidBoxTensor"):
-                center = boxes[..., 0, :].to(device)
                 offset = boxes[..., 1, :].to(device)
-                z = center - offset
-                Z = center + offset
+                emb_diffs = offset * 2
             else:
                 z = boxes[..., 0, :].to(device)
                 Z = boxes[..., 1, :].to(device)
+                emb_diffs = Z - z
 
-            emb_diffs = Z - z
             if dist_type == "relu":
                 emb_diffs = torch.relu(emb_diffs)
             elif dist_type == "abs":
@@ -251,13 +249,15 @@ def summarize_sim_scores(
         eval_file,
         num_stimuli,
         num_output=300,
+        with_id=False,
     ):
     output_path = f"{output_dir}/{eval_file}.csv"
     with open(output_path, "w") as f:
 
         header = []
         for i in range(num_stimuli): header.append(f"stimulus_{i+1}")
-        for i in range(num_stimuli): header.append(f"id_{i+1}")
+        if with_id:
+            for i in range(num_stimuli): header.append(f"id_{i+1}")
         header.extend(["labels", "scores"])
 
         csvwriter = csv.writer(f)
@@ -265,9 +265,10 @@ def summarize_sim_scores(
 
         for stimuli in words_list:
             result = []
+            if with_id:
+                stim_ids = vocab_libs.words_list_to_ids_tensor(stimuli)
+                result.extend(stim_ids.to('cpu').detach().numpy().tolist())
             result.extend(stimuli)
-            stim_ids = vocab_libs.words_list_to_ids_tensor(words_list)
-            result.extend(stim_ids.to('cpu').detach().numpy().tolist())
 
             sim_scores_path = f"{output_dir}/{'_'.join(stimuli)}.csv"
             labels_and_scores, _ = fh.read_csv(sim_scores_path, has_header=True)

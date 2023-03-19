@@ -101,9 +101,9 @@ def eval(args):
 
     # 刺激語の数
     if type(words_list[0]) == list:
-        num_stimuli = len(words_list[0][0])
-    else:
         num_stimuli = len(words_list[0])
+    else:
+        num_stimuli = len(words_list)
 
     # dumpされたデータを見やすくするために要約
     ra.summarize_sim_scores(vocab_libs, words_list, output_dir, args.eval_file, num_stimuli, args.num_output)
