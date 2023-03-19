@@ -161,7 +161,7 @@ def dump_sim_scores(
         scores = scores.to('cpu').detach().numpy().tolist()
         labels = labels.to('cpu').detach().numpy().tolist()
 
-        output_path = f"{output_dir}/{'_'.join(stimuli)}.csv"
+        output_path = f"{output_dir}/sims_{'_'.join(stimuli)}.csv"
         with open(output_path, 'w') as fo:
             stimuli_writer = csv.writer(fo)
             stimuli_writer.writerow(["labels", "scores"])
@@ -301,10 +301,19 @@ def dump_boxes_zZ(
     all_Z = word_embs.Z
     all_Z = torch.t(all_Z).to('cpu').detach().numpy()
 
+    results = np.zeros([all_z.shape[0], 2 * all_z.shape[-1]])
+    results[..., 0::2] = all_z
+    results[..., 1::2] = all_Z
+    results = results.tolist()
+
     # Make header
-    labels = [f"{word}-" for word in words]
+    labels = []
     for word in words:
+        labels.append(f"{word}-")
         labels.append(f"{word}+")
+
+    assert len(results[0]) == len(labels), \
+        f"len(results[0])=={len(results[0])}, len(labels)=={len(labels)}"
 
     # Make a dir if not exists
     if not os.path.isdir(output_dir):
@@ -312,12 +321,7 @@ def dump_boxes_zZ(
 
     # Write boxes
     output_path = f"{output_dir}/{output_file}"
-    with open(output_path, "w") as f:
-        csvwriter = csv.writer(f)
-        csvwriter.writerow(labels)
-        for z, Z in zip(all_z, all_Z):
-            embs = np.concatenate([z, Z])
-            csvwriter.writerow(embs)
+    fh.write_csv(output_path, results, header=labels)
     print(f"Successfully written {output_path} !")
 
 
@@ -341,10 +345,19 @@ def dump_boxes_cenoff(
     all_off = word_embs.offset
     all_off = torch.t(all_off).to('cpu').detach().numpy()
 
+    results = np.zeros([all_cen.shape[0], 2 * all_cen.shape[-1]])
+    results[..., 0::2] = all_cen
+    results[..., 1::2] = all_off
+    results = results.tolist()
+
     # Make header
-    labels = [f"{word}Ct" for word in words]
+    labels = []
     for word in words:
+        labels.append(f"{word}Ct")
         labels.append(f"{word}Of")
+
+    assert len(results[0]) == len(labels), \
+        f"len(results[0])=={len(results[0])}, len(labels)=={len(labels)}"
 
     # Make a dir if not exists
     if not os.path.isdir(output_dir):
@@ -352,13 +365,54 @@ def dump_boxes_cenoff(
 
     # Write boxes
     output_path = f"{output_dir}/{output_file}"
-    with open(output_path, "w") as f:
-        csvwriter = csv.writer(f)
-        csvwriter.writerow(labels)
-        for cen, off in zip(all_cen, all_off):
-            embs = np.concatenate([cen, off])
-            csvwriter.writerow(embs)
-    print(f"Successfully written {output_path} !")
+    fh.write_csv(output_path, results, header=labels)
+
+
+def plot_eachdim_of_boxes(
+        model,
+        vocab_libs,
+        words: List,  # This arg should be 1-dim list
+        output_dir,
+        output_file: str=None,
+    ):
+
+    model.to('cpu')
+
+    # Embed words
+    ids_tensor: LongTensor = vocab_libs.words_list_to_ids_tensor(words).to('cpu')
+    word_embs = model.embeddings_word(ids_tensor)
+    zs = word_embs.z.to('cpu').detach().numpy()
+    Zs = word_embs.Z.to('cpu').detach().numpy()
+
+    # Set properties
+    fig, ax = plt.subplots()
+    dim = zs.shape[-1]
+    colors = ["blue", "red", "green", "yellow", "pink"]
+    assert len(words) < len(colors), "Number of colors is not enough"
+    for i, (z, Z) in enumerate(zip(zs, Zs)):
+        isplotted: bool = False
+        for d in range(dim):
+            if Z[d] > z[d]:
+                if isplotted:
+                    ax.bar(d, Z[d]-z[d], bottom=z[d], color=colors[i],
+                           alpha=0.5, align='center')
+                else:
+                    ax.bar(d, Z[d]-z[d], bottom=z[d], color=colors[i],
+                           alpha=0.5, align='center', label=words[i])
+                    isplotted = True
+
+    ax.set_xlabel('Dimensions')
+    ax.set_ylabel('Box position')
+    ax.grid(True)
+    handles, labels = ax.get_legend_handles_labels()
+    fig.legend(handles, labels, ncol=len(words), loc='upper center')
+
+    # Output file
+    if output_file is None:
+        output_file = f"boxes_{('_').join(words)}.png"
+    output_path = f"{output_dir}/{output_file}"
+    fig.savefig(output_path)
+    print(f"Successfully plotted {output_path}")
 
 
 def dump_centers_with_w2v(
