@@ -105,6 +105,9 @@ def eval(args):
     else:
         num_stimuli = len(words_list)
 
+    # dumpされたデータを見やすくするために要約
+    ra.summarize_sim_scores(vocab_libs, words_list, output_dir, args.eval_file, num_stimuli, args.num_output)
+
     # boxを次元毎にプロット
     for words in words_list:
         print(words)
