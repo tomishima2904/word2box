@@ -21,7 +21,7 @@ from ..set_operations import SetOperations
 
 
 # Plot similarity
-def plot_similarity(save_dir, stimulus:str, vocab_freq:Dict, title="x"):
+def plot_similarity(save_dir, stimulus:str, vocab_freq:Dict):
 
     # Read similarity from csv file
     similairties_list, header = fh.read_csv(f"{save_dir}/{stimulus}.csv",
