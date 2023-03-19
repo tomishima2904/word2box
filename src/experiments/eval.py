@@ -8,16 +8,12 @@ import pickle, json
 import sys, os
 from tqdm import tqdm
 from typing import Union, List, Dict
-
 import argparse
 from pathlib import Path
 
-
-# モデルのリロードに必要なモジュールをインポートする
 from language_modeling_with_boxes.models import \
     Word2Box, Word2Vec, Word2VecPooled, Word2BoxConjunction, Word2Gauss
 
-import experiments.set_operations as set_operations
 from experiments.utils import file_handlers as fh
 from datasets import TrainedAllVocabDataset
 from experiments.modules.vocab_libs import VocabLibs, VocabLibsWithFreq
@@ -75,7 +71,9 @@ def eval(args):
         os.makedirs(output_dir)
 
     # 訓練済み埋め込み表現のboxのvolumeを計算
-    ra.compute_allbox_volumes(vocab_libs, dataloader, model.box_type, device, output_dir, dist_type="relu")
+    ra.compute_allbox_vols(vocab_libs, dataloader, model.box_type,
+                           device, output_dir, dist_type=args.dist_type,
+                           temp=config["vol_temp"], gumbel_beta=config["int_temp"])
 
 
     # 以下では評価用データセットを利用
@@ -116,15 +114,16 @@ def eval(args):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--result_dir', type=str, required=True, help="dir path where the saved model is")
-    parser.add_argument('--data_device', type=str, default="cpu", help="device type")
-    parser.add_argument('--eval_file', type=str, required=True, help="file path where the eval file is")
     parser.add_argument('--batch_size', type=int, default=16384, help="batch size for evaluating with all vocab")
+    parser.add_argument('--data_device', type=str, default="cpu", help="device type")
+    parser.add_argument('--dist_type', type=str, default="logsoft", help="[logsoft, relu, abs]")
+    parser.add_argument('--eval_file', type=str, required=True, help="file path where the eval file is")
+    parser.add_argument('--multi_gpu', type=int, default=0, help="1 if you use multi gpu")
     parser.add_argument('--num_output', type=int, default=300, help="number of labels and scores to be output")
     parser.add_argument('--num_workers', type=int, default=0, help="number of workers for dataloader")
     parser.add_argument('--output_allscores', type=int, default=1)
     parser.add_argument('--pin_memory', type=int, default=0, help="1 if you use pin memory in dataloader")
-    parser.add_argument('--multi_gpu', type=int, default=0, help="1 if you use multi gpu")
+    parser.add_argument('--result_dir', type=str, required=True, help="dir path where the saved model is")
     parser.add_argument('--w2v_dir', type=str, default=None, help="dir path where the trained word2vec model is")
     args = parser.parse_args()
 
