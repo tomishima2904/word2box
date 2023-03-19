@@ -301,10 +301,19 @@ def dump_boxes_zZ(
     all_Z = word_embs.Z
     all_Z = torch.t(all_Z).to('cpu').detach().numpy()
 
+    results = np.zeros([all_z.shape[0], 2 * all_z.shape[-1]])
+    results[..., 0::2] = all_z
+    results[..., 1::2] = all_Z
+    results = results.tolist()
+
     # Make header
-    labels = [f"{word}-" for word in words]
+    labels = []
     for word in words:
+        labels.append(f"{word}-")
         labels.append(f"{word}+")
+
+    assert len(results[0]) == len(labels), \
+        f"len(results[0])=={len(results[0])}, len(labels)=={len(labels)}"
 
     # Make a dir if not exists
     if not os.path.isdir(output_dir):
@@ -312,12 +321,7 @@ def dump_boxes_zZ(
 
     # Write boxes
     output_path = f"{output_dir}/{output_file}"
-    with open(output_path, "w") as f:
-        csvwriter = csv.writer(f)
-        csvwriter.writerow(labels)
-        for z, Z in zip(all_z, all_Z):
-            embs = np.concatenate([z, Z])
-            csvwriter.writerow(embs)
+    fh.write_csv(output_path, results, header=labels)
     print(f"Successfully written {output_path} !")
 
 
@@ -341,10 +345,19 @@ def dump_boxes_cenoff(
     all_off = word_embs.offset
     all_off = torch.t(all_off).to('cpu').detach().numpy()
 
+    results = np.zeros([all_cen.shape[0], 2 * all_cen.shape[-1]])
+    results[..., 0::2] = all_cen
+    results[..., 1::2] = all_off
+    results = results.tolist()
+
     # Make header
-    labels = [f"{word}Ct" for word in words]
+    labels = []
     for word in words:
+        labels.append(f"{word}Ct")
         labels.append(f"{word}Of")
+
+    assert len(results[0]) == len(labels), \
+        f"len(results[0])=={len(results[0])}, len(labels)=={len(labels)}"
 
     # Make a dir if not exists
     if not os.path.isdir(output_dir):
@@ -352,13 +365,8 @@ def dump_boxes_cenoff(
 
     # Write boxes
     output_path = f"{output_dir}/{output_file}"
-    with open(output_path, "w") as f:
-        csvwriter = csv.writer(f)
-        csvwriter.writerow(labels)
-        for cen, off in zip(all_cen, all_off):
-            embs = np.concatenate([cen, off])
-            csvwriter.writerow(embs)
-    print(f"Successfully written {output_path} !")
+    fh.write_csv(output_path, results, header=labels)
+
 
 
 def dump_centers_with_w2v(
