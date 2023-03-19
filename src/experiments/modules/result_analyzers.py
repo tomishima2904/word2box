@@ -387,21 +387,31 @@ def plot_eachdim_of_boxes(
     # Set properties
     fig, ax = plt.subplots()
     dim = zs.shape[-1]
-    for z, Z in zip(zs, Zs):
-        for i in range(dim):
-            if Z[i] > z[i]:
-                ax.bar(i, Z[i]-z[i], bottom=z[i], color='b', alpha=0.5, align='center')
+    colors = ["blue", "red", "green", "yellow", "pink"]
+    assert len(words) < len(colors), "Number of colors is not enough"
+    for i, (z, Z) in enumerate(zip(zs, Zs)):
+        isplotted: bool = False
+        for d in range(dim):
+            if Z[d] > z[d]:
+                if isplotted:
+                    ax.bar(d, Z[d]-z[d], bottom=z[d], color=colors[i],
+                           alpha=0.5, align='center')
+                else:
+                    ax.bar(d, Z[d]-z[d], bottom=z[d], color=colors[i],
+                           alpha=0.5, align='center', label=words[i])
+                    isplotted = True
 
     ax.set_xlabel('Dimensions')
     ax.set_ylabel('Box position')
-    ax.set_title(f"Box(es) of {(', ').join(words)}")
     ax.grid(True)
+    handles, labels = ax.get_legend_handles_labels()
+    fig.legend(handles, labels, ncol=len(words), loc='upper center')
 
     # Output file
     if output_file is None:
         output_file = f"boxes_{('_').join(words)}.png"
     output_path = f"{output_dir}/{output_file}"
-    fig.savefig(output_path, )
+    fig.savefig(output_path)
     print(f"Successfully plotted {output_path}")
 
 
