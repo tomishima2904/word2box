@@ -128,7 +128,7 @@ def compute_allbox_volumes(
 
 
 # Plot volume of boxes by descending order
-def plot_allbox_volumes(save_dir, filename):
+def plot_allbox_volumes(save_dir, filename, dist_type):
     with open(f"{save_dir}/{filename}.csv", "r") as f:
         csvreader = csv.reader(f)
         header = next(csvreader)
@@ -137,9 +137,12 @@ def plot_allbox_volumes(save_dir, filename):
 
         fig, ax = plt.subplots()
         ax.plot(x, volumes)
-        ax.set_title("Largest boxes")
-        fig.savefig(f"{save_dir}/{filename}.png")
-        print("Plotting has done")
+        ax.set_title(f"Largest boxes ({dist_type})")
+        ax.set_ylabel("Volume")
+
+        output_path = f"{save_dir}/{filename}.png"
+        fig.savefig(output_path)
+        print(f"Successfully plotten {output_path}")
 
 
 # 刺激語の共通部分のboxと全ての語彙のboxとの類似度を計算
