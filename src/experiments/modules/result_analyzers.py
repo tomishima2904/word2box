@@ -1,6 +1,7 @@
 import torch
 from torch import Tensor, LongTensor
 from torch.utils.data import DataLoader
+import torch.nn.functional as F
 from typing import Union, List, Dict, Tuple
 import json
 import csv
@@ -16,7 +17,7 @@ from language_modeling_with_boxes.box.box_wrapper import BoxTensor
 
 from ..utils import file_handlers as fh
 from .vocab_libs import VocabLibs, VocabLibsWithFreq
-from set_operations import SetOperations
+from ..set_operations import SetOperations
 
 
 # Plot similarity
@@ -64,44 +65,53 @@ def plot_similarity(save_dir, stimulus:str, vocab_freq:Dict, title="x"):
     print("Plotting has done")
 
 
-def compute_allbox_volumes(
+def compute_allbox_vols(
         vocab_libs: VocabLibsWithFreq,
         dataloader,
         box_type,
         device,
         output_dir,
-        dist_type: str="abs"
+        dist_type: str="abs",
+        temp: float = 1.0,  # volume_temp
+        gumbel_beta: float = 1.0,  # int(ersection)_temp
     ):
 
-    volume_list = []
+    volumes_list = []
     vocab_itos:List = vocab_libs.get_vocab_itos()
 
     with torch.no_grad():
-
         # Compute volumes of all boxes
         for boxes, labels in tqdm(dataloader):
             B = len(boxes)
-
             if box_type in ("CenterBoxTensor", "CenterSigmoidBoxTensor"):
+                center = boxes[..., 0, :].to(device)
                 offset = boxes[..., 1, :].to(device)
-                emb_diffs = offset * 2
+                z = center - offset
+                Z = center + offset
             else:
                 z = boxes[..., 0, :].to(device)
                 Z = boxes[..., 1, :].to(device)
-                emb_diffs = Z - z
 
             if dist_type == "relu":
-                emb_diffs = torch.relu(emb_diffs)
+                volumes = torch.sum(torch.relu(Z - z), dim=-1).to('cpu')
             elif dist_type == "abs":
-                emb_diffs = torch.abs(emb_diffs)
+                volumes = torch.sum(torch.abs(Z - z), dim=-1).to('cpu')
+            elif dist_type == "logsoft":
+                euler_gamma = 0.57721566490153286060
+                volumes = torch.sum(
+                                torch.log(
+                                    F.softplus(Z - z - 2*euler_gamma*gumbel_beta, beta=temp) + 1e-23
+                                ),
+                                dim=-1,
+                            ).to('cpu')
             else:
                 raise ValueError(f"Invalid distance type {dist_type}")
 
-            volume_list.extend(torch.sum(emb_diffs, dim=-1).to('cpu'))
+            volumes_list.extend(volumes)
 
         # Sort volumes by descending order
-        volume_list = Tensor(volume_list, device='cpu')
-        sorted_emb, indicies = torch.sort(volume_list, descending=True)
+        volumes_list = Tensor(volumes_list, device='cpu')
+        sorted_emb, indicies = torch.sort(volumes_list, descending=True)
         sorted_emb = sorted_emb.to('cpu').detach().numpy().copy()
         indicies = indicies.to('cpu').detach().numpy().copy()
 
@@ -110,6 +120,8 @@ def compute_allbox_volumes(
         filename = "largest_relu"
     elif dist_type == "abs":
         filename = "largest_abs"
+    elif dist_type == "logsoft":
+        filename = "largest_logsoft"
     output_path = f"{output_dir}/{filename}.csv"
 
     # Dump volumes
@@ -123,11 +135,11 @@ def compute_allbox_volumes(
             csvwriter.writerow(row)
         print(f"Successfully written {output_path} !")
 
-    plot_allbox_volumes(output_dir, filename)
+    plot_allbox_volumes(output_dir, filename, dist_type)
 
 
 # Plot volume of boxes by descending order
-def plot_allbox_volumes(save_dir, filename):
+def plot_allbox_volumes(save_dir, filename, dist_type):
     with open(f"{save_dir}/{filename}.csv", "r") as f:
         csvreader = csv.reader(f)
         header = next(csvreader)
@@ -136,9 +148,12 @@ def plot_allbox_volumes(save_dir, filename):
 
         fig, ax = plt.subplots()
         ax.plot(x, volumes)
-        ax.set_title("Largest boxes")
-        fig.savefig(f"{save_dir}/{filename}.png")
-        print("Plotting has done")
+        ax.set_title(f"Largest boxes ({dist_type})")
+        ax.set_ylabel("Volume")
+
+        output_path = f"{save_dir}/{filename}.png"
+        fig.savefig(output_path)
+        print(f"Successfully plotten {output_path}")
 
 
 # 刺激語の共通部分のboxと全ての語彙のboxとの類似度を計算
