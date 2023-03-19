@@ -5,7 +5,7 @@ from typing import Union, List, Dict, Tuple
 import json
 import csv
 import matplotlib.pyplot as plt
-from matplotlib import cm
+import japanize_matplotlib
 from tqdm import tqdm
 import numpy as np
 import os
@@ -49,7 +49,7 @@ def plot_similarity(save_dir, stimulus:str, vocab_freq:Dict, title="x"):
     #ax1.axvline(x=word_index, color='red')
     ax1.scatter(x=word_index, y=scores[word_index], color='red')
 
-    ax1.set_title(f"Similarity of {title}")
+    ax1.set_title(f"Similarity of {stimulus}")
     ax1.set_xlabel("Words")
     ax1.set_ylabel('Similarity')
     ax2.set_ylabel('Frequency')
