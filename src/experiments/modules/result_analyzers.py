@@ -1,6 +1,7 @@
 import torch
 from torch import Tensor, LongTensor
 from torch.utils.data import DataLoader
+import torch.nn.functional as F
 from typing import Union, List, Dict, Tuple
 import json
 import csv
@@ -16,7 +17,7 @@ from language_modeling_with_boxes.box.box_wrapper import BoxTensor
 
 from ..utils import file_handlers as fh
 from .vocab_libs import VocabLibs, VocabLibsWithFreq
-from set_operations import SetOperations
+from ..set_operations import SetOperations
 
 
 # Plot similarity
