@@ -153,7 +153,7 @@ def plot_allbox_volumes(save_dir, filename, dist_type):
 
         output_path = f"{save_dir}/{filename}.png"
         fig.savefig(output_path)
-        print(f"Successfully plotten {output_path}")
+        print(f"Successfully plotted {output_path} !")
 
 
 # 刺激語の共通部分のboxと全ての語彙のboxとの類似度を計算
@@ -337,7 +337,6 @@ def dump_boxes_zZ(
     # Write boxes
     output_path = f"{output_dir}/{output_file}"
     fh.write_csv(output_path, results, header=labels)
-    print(f"Successfully written {output_path} !")
 
 
 def dump_boxes_cenoff(
@@ -400,14 +399,14 @@ def plot_eachdim_of_boxes(
     Zs = word_embs.Z.to('cpu').detach().numpy()
 
     # Set properties
-    fig, ax = plt.subplots()
+    fig, ax = plt.subplots(figsize=(12,4))
     dim = zs.shape[-1]
     colors = ["blue", "red", "green", "yellow", "pink"]
-    assert len(words) < len(colors), "Number of colors is not enough"
+    assert len(words) <= len(colors), "Number of colors is not enough"
     for i, (z, Z) in enumerate(zip(zs, Zs)):
         isplotted: bool = False
         for d in range(dim):
-            if Z[d] > z[d]:
+            if Z[d] >= z[d]:
                 if isplotted:
                     ax.bar(d, Z[d]-z[d], bottom=z[d], color=colors[i],
                            alpha=0.5, align='center')

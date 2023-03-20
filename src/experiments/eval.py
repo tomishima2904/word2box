@@ -108,7 +108,6 @@ def eval(args):
 
     # boxを次元毎にプロット
     for words in words_list:
-        print(words)
         ra.plot_eachdim_of_boxes(model, vocab_libs, words, output_dir)
 
 
