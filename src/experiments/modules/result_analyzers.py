@@ -21,7 +21,7 @@ from ..set_operations import SetOperations
 
 
 # Plot similarity
-def plot_similarity(save_dir, stimulus:str, vocab_freq:Dict, title="x"):
+def plot_similarity(save_dir, stimulus:str, vocab_freq:Dict):
 
     # Read similarity from csv file
     similairties_list, header = fh.read_csv(f"{save_dir}/{stimulus}.csv",
@@ -83,14 +83,9 @@ def compute_allbox_vols(
         # Compute volumes of all boxes
         for boxes, labels in tqdm(dataloader):
             B = len(boxes)
-            if box_type in ("CenterBoxTensor", "CenterSigmoidBoxTensor"):
-                center = boxes[..., 0, :].to(device)
-                offset = boxes[..., 1, :].to(device)
-                z = center - offset
-                Z = center + offset
-            else:
-                z = boxes[..., 0, :].to(device)
-                Z = boxes[..., 1, :].to(device)
+
+            z = boxes[..., 0, :].to(device)
+            Z = boxes[..., 1, :].to(device)
 
             if dist_type == "relu":
                 volumes = torch.sum(torch.relu(Z - z), dim=-1).to('cpu')
@@ -153,7 +148,7 @@ def plot_allbox_volumes(save_dir, filename, dist_type):
 
         output_path = f"{save_dir}/{filename}.png"
         fig.savefig(output_path)
-        print(f"Successfully plotten {output_path}")
+        print(f"Successfully plotted {output_path} !")
 
 
 # 刺激語の共通部分のboxと全ての語彙のboxとの類似度を計算
@@ -217,14 +212,8 @@ def _compute_sim_with_vocab(
             # 共通部分と語彙のBoxTensorを作成
             # Make BoxTensors
             B = len(boxes)
-            if box_type in ("CenterBoxTensor", "CenterSigmoidBoxTensor"):
-                center = boxes[..., 0, :].unsqueeze(-2).to(device)
-                offset = boxes[..., 1, :].unsqueeze(-2).to(device)
-                vocab_z: Tensor = center - offset
-                vocab_Z: Tensor = center + offset
-            else:
-                vocab_z: Tensor = boxes[..., 0, :].unsqueeze(-2).to(device)
-                vocab_Z: Tensor = boxes[..., 1, :].unsqueeze(-2).to(device)
+            vocab_z: Tensor = boxes[..., 0, :].unsqueeze(-2).to(device)
+            vocab_Z: Tensor = boxes[..., 1, :].unsqueeze(-2).to(device)
             vocab_boxes = BoxTensor.from_zZ(vocab_z, vocab_Z)  # [B, 1, 2, embedding_dim]
             intersection_z = intersection_box.z.expand(B, -1, -1).to(device)  # [B, 1, embedding_dim]
             intersection_Z = intersection_box.Z.expand(B, -1, -1).to(device)
@@ -285,7 +274,7 @@ def summarize_sim_scores(
                 result.extend(stim_ids.to('cpu').detach().numpy().tolist())
             result.extend(stimuli)
 
-            sim_scores_path = f"{output_dir}/{'_'.join(stimuli)}.csv"
+            sim_scores_path = f"{output_dir}/sims_{'_'.join(stimuli)}.csv"
             labels_and_scores, _ = fh.read_csv(sim_scores_path, has_header=True)
             labels_and_scores = labels_and_scores[:num_output]
             labels = [row[0] for row in labels_and_scores]
@@ -337,7 +326,6 @@ def dump_boxes_zZ(
     # Write boxes
     output_path = f"{output_dir}/{output_file}"
     fh.write_csv(output_path, results, header=labels)
-    print(f"Successfully written {output_path} !")
 
 
 def dump_boxes_cenoff(
@@ -400,14 +388,14 @@ def plot_eachdim_of_boxes(
     Zs = word_embs.Z.to('cpu').detach().numpy()
 
     # Set properties
-    fig, ax = plt.subplots()
+    fig, ax = plt.subplots(figsize=(12,4))
     dim = zs.shape[-1]
     colors = ["blue", "red", "green", "yellow", "pink"]
-    assert len(words) < len(colors), "Number of colors is not enough"
+    assert len(words) <= len(colors), "Number of colors is not enough"
     for i, (z, Z) in enumerate(zip(zs, Zs)):
         isplotted: bool = False
         for d in range(dim):
-            if Z[d] > z[d]:
+            if Z[d] >= z[d]:
                 if isplotted:
                     ax.bar(d, Z[d]-z[d], bottom=z[d], color=colors[i],
                            alpha=0.5, align='center')
