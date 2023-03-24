@@ -54,6 +54,16 @@ W2V_DIRS = {
 torch.manual_seed(CONFIG["seed"])
 random.seed(CONFIG["seed"])
 
+def ddp_setup(rank, world_size):
+    """
+    Args:
+        rank: Unique identifier of each process
+        world_size: Total number of processes
+    """
+    os.environ["MASTER_ADDR"] = "localhost"
+    os.environ["MASTER_PORT"] = "12356"
+    init_process_group(backend="nccl", rank=rank, world_size=world_size)
+
 
 # 既存関数を使って訓練用のデータローダーを作成
 def get_train_dataloader(
@@ -73,6 +83,7 @@ def get_train_dataloader(
         config["add_pad"],
         config["eos_mask"],
         config["ignore_unk"],
+
     )
     return TEXT, train_iter, val_iter, test_iter, subsampling_prob
 
@@ -82,6 +93,7 @@ def define_model(
         trial,
         config,
         vocab_size,
+        gpu_id,
     ):
     # embedding_dim, int_temp, vol_temp をoptunaで探索
     embedding_dim = trial.suggest_categorical("embedding_dim", [50, 100, 200, 300])
