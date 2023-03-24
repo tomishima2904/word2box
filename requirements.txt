@@ -60,6 +60,7 @@ nltk==3.5
 numpy @ file:///tmp/build/80754af9/numpy_and_numpy_base_1603479632437/work
 numpydoc==1.1.0
 olefile==0.46
+optuna
 overrides==3.1.0
 packaging==20.9
 parsimonious==0.8.1
