@@ -17,10 +17,12 @@ import os
 
 import optuna
 
-from language_modeling_with_boxes.datasets.utils import get_iter_on_device
+from language_modeling_with_boxes.datasets.utils import get_train_iter, get_vocab
 from language_modeling_with_boxes.models import \
     Word2Box, Word2Vec, Word2VecPooled, Word2BoxConjunction, Word2Gauss
 from language_modeling_with_boxes.train.Trainer import TrainerWordSimilarity
+from language_modeling_with_boxes.train.negative_sampling import \
+    RandomNegativeCBOW, RandomNegativeSkipGram
 
 
 CONFIG = {
@@ -60,10 +62,11 @@ def get_train_dataloader(
         n_gram,
         trial,
         config,
+        vocab,
     ):
     subsample_thresh = trial.suggest_float("subsample_thresh", 1e-4, 1, log=True)
 
-    TEXT, train_iter, val_iter, test_iter, subsampling_prob = get_iter_on_device(
+    train_iter = get_train_iter(
         config["batch_size"],
         config["dataset"],
         config["model_type"],
@@ -73,9 +76,9 @@ def get_train_dataloader(
         config["add_pad"],
         config["eos_mask"],
         config["ignore_unk"],
-
+        vocab,
     )
-    return TEXT, train_iter, val_iter, test_iter, subsampling_prob
+    return train_iter
 
 
 def define_model(
@@ -83,7 +86,6 @@ def define_model(
         trial,
         config,
         vocab_size,
-        gpu_id,
     ):
     # embedding_dim, int_temp, vol_temp をoptunaで探索
     embedding_dim = trial.suggest_categorical("embedding_dim", [50, 100, 200, 300])
@@ -139,23 +141,34 @@ class TrainerWordSimilarity4Optuna(TrainerWordSimilarity):
             subsampling_prob=None,
             device="cpu"
         ):
-        super(self).__init__(
-            train_iter,
-            val_iter,
-            vocab,
-            trial,
-            n_gram,
-            loss_fn,
-            model_mode,
-            lang,
-            log_frequency,
-            similarity_datasets_dir,
-            subsampling_prob,
-            device,
+        super(TrainerWordSimilarity4Optuna, self).__init__(
+            train_iter=train_iter,
+            val_iter=val_iter,
+            vocab=vocab,
+            n_gram=n_gram,
+            loss_fn=loss_fn,
+            model_mode=model_mode,
+            lang=lang,
+            log_frequency=log_frequency,
+            similarity_datasets_dir=similarity_datasets_dir,
+            subsampling_prob=subsampling_prob,
+            device=device,
         )
         self.lr = trial.suggest_float("lr", 1e-10, 1e-1, log=True)
         self.negative_samples = trial.suggest_categorical("negative_samples", [1, 2, 4, 8])
         self.margin = trial.suggest_float("margin", 1, 10)
+
+        # If subsampling has been done earlier then word count must have been changed
+        # This is an expected word count based on the subsampling prob parameters.
+        if subsampling_prob != None:
+            self.sampling = (
+                torch.min(torch.tensor(1.0).to(self.device), 1 - subsampling_prob.to(self.device))
+                * self.sampling
+            )
+        if model_mode == "CBOW":
+            self.add_negatives = RandomNegativeCBOW(self.negative_samples, self.sampling)
+        elif model_mode == "SkipGram":
+            self.add_negatives = RandomNegativeSkipGram(self.negative_samples, self.sampling)
 
 
     def train_model(
@@ -245,7 +258,6 @@ class TrainerWordSimilarity4Optuna(TrainerWordSimilarity):
                     )
                     logzero.logger.info(f"Epoch {epoch+1}  | Step:{i}  | Loss: {np.mean(epoch_loss)}| spearmanr: {simlex_ws}")
 
-
                     model.train()
 
             # Logging training loss
@@ -277,16 +289,17 @@ def objective(trial):
     n_gram = trial.suggest_int("n_gram", 3, 10)
 
     # 語彙や訓練用データローダーの準備
-    TEXT, train_iter, val_iter, test_iter, subsampling_prob = \
-        get_train_dataloader(n_gram, trial, CONFIG)
-    VOCAB_SIZE = len(TEXT.stoi)
+    vocab = get_vocab(CONFIG["dataset"], CONFIG["eos_mask"])
+    VOCAB_SIZE = len(vocab["stoi"])
+    train_iter = get_train_dataloader(n_gram, trial, CONFIG, vocab)
+    val_iter = None
 
-    model = define_model(trial, CONFIG, VOCAB_SIZE)
+    model = define_model(n_gram, trial, CONFIG, VOCAB_SIZE)
 
     # 訓練のためのインスタンスのセットアップ
     trainer = TrainerWordSimilarity4Optuna(train_iter=train_iter,
                                            val_iter=val_iter,
-                                           vocab=TEXT,
+                                           vocab=vocab,
                                            trial=trial,
                                            n_gram=n_gram,
                                            lang=CONFIG["lang"],
