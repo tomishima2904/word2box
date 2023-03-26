@@ -25,7 +25,7 @@ from language_modeling_with_boxes.train.Trainer import TrainerWordSimilarity
 
 CONFIG = {
     "batch_size": 8192,
-    "box_type": "CenterBoxTensor",
+    "box_type": "BoxTensor",
     "data_device": "cuda:1",
     "dataset": "example",
     "eval_file": "./data/ja_similarity_datasets/",
@@ -53,16 +53,6 @@ W2V_DIRS = {
 
 torch.manual_seed(CONFIG["seed"])
 random.seed(CONFIG["seed"])
-
-def ddp_setup(rank, world_size):
-    """
-    Args:
-        rank: Unique identifier of each process
-        world_size: Total number of processes
-    """
-    os.environ["MASTER_ADDR"] = "localhost"
-    os.environ["MASTER_PORT"] = "12356"
-    init_process_group(backend="nccl", rank=rank, world_size=world_size)
 
 
 # 既存関数を使って訓練用のデータローダーを作成
