@@ -348,7 +348,7 @@ class TrainerWordSimilarity(Trainer):
                             and self.vocab["stoi"].get(row[1], "<unk>") != "<unk>"
                         ):
                             word1 = (
-                                torch.tensor(self["vocab"].stoi[row[0]], dtype=int)
+                                torch.tensor(self.vocab["stoi"][row[0]], dtype=int)
                                 .unsqueeze(0)
                                 .to(self.device)
                             )
