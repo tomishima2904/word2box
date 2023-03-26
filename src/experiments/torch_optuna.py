@@ -53,6 +53,9 @@ W2V_DIRS = {
     300: None,
 }
 
+VOCAB = get_vocab(CONFIG["dataset"], CONFIG["eos_mask"])
+VOCAB_SIZE = len(VOCAB["stoi"])
+
 torch.manual_seed(CONFIG["seed"])
 random.seed(CONFIG["seed"])
 
@@ -289,9 +292,7 @@ def objective(trial):
     n_gram = trial.suggest_int("n_gram", 3, 10)
 
     # 語彙や訓練用データローダーの準備
-    vocab = get_vocab(CONFIG["dataset"], CONFIG["eos_mask"])
-    VOCAB_SIZE = len(vocab["stoi"])
-    train_iter = get_train_dataloader(n_gram, trial, CONFIG, vocab)
+    train_iter = get_train_dataloader(n_gram, trial, CONFIG, VOCAB)
     val_iter = None
 
     model = define_model(n_gram, trial, CONFIG, VOCAB_SIZE)
@@ -299,7 +300,7 @@ def objective(trial):
     # 訓練のためのインスタンスのセットアップ
     trainer = TrainerWordSimilarity4Optuna(train_iter=train_iter,
                                            val_iter=val_iter,
-                                           vocab=vocab,
+                                           vocab=VOCAB,
                                            trial=trial,
                                            n_gram=n_gram,
                                            lang=CONFIG["lang"],
@@ -332,9 +333,9 @@ if __name__ == "__main__":
     print(f"Number of trials on the Pareto front: {len(study.best_trials)}")
 
     trial_with_lowest_loss = min(study.best_trials, key=lambda t: t.values[0])
-    print(f"Trial with highest accuracy: ")
-    print(f"\tnumber: {trial_with_lowest_loss.number}")
-    print(f"\tparams: {trial_with_lowest_loss.params}")
-    print(f"\tvalues: {trial_with_lowest_loss.values}")
+    logzero.logger.info(f"Trial with highest accuracy: ")
+    logzero.logger.info(f"number: {trial_with_lowest_loss.number}")
+    logzero.logger.info(f"params: {trial_with_lowest_loss.params}")
+    logzero.logger.info(f"values: {trial_with_lowest_loss.values}")
 
     joblib.dump(study, f"{save_dir}/study.pkl")
