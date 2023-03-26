@@ -6,8 +6,10 @@ import multiprocessing as mp
 from multiprocessing import Manager
 import torch
 import itertools
+from collections import Counter
 
 import torchtext
+import torchtext.vocab as vocab
 from torchtext.datasets import PennTreebank, WikiText2, WikiText103
 from torch.utils.data import ConcatDataset, DataLoader
 
@@ -51,29 +53,41 @@ def load_vocab(data_dir: Union[str, Path]):
                 vocab_stoi[token] = int(token_id)
                 vocab_freq[token] = int(frequency)
         return vocab_stoi, vocab_freq
+
     elif path.isfile(data_dir + "vocab_stoi.json") and path.isfile(
         data_dir + "vocab_freq.json"
     ):
         vocab_stoi = json.load(open(data_dir + "vocab_stoi.json", "r"))
         vocab_freq = json.load(open(data_dir + "vocab_freq.json", "r"))
         return vocab_stoi, vocab_freq
+
     else:
-        TEXT = torchtext.data.Field()
-        train_split = torchtext.datasets.LanguageModelingDataset.splits(
-            path=data_dir,
-            train="train.txt",
-            validation=None,
-            test=None,
-            text_field=TEXT,
-        )
-        TEXT.build_vocab(train_split[0])
+        train_txt = Path(data_dir) / "train.txt"
+        vocab_freq = Counter()
+        with train_txt.open() as train_txt_file:
+            for tokens in _yield_tokens(train_txt_file):
+                vocab_freq.update(tokens)
+
+        specials = ['<unk>', '<pad>', '<eos>']
+        vocab_obj = vocab.build_vocab_from_iterator([vocab_freq.keys()], specials=specials)
+        vocab_stoi = vocab_obj.get_stoi()
+
+        # Sort vocab_stoi by order of IDs
+        vocab_stoi = {k: v for k, v in sorted(vocab_stoi.items(), key=lambda item: item[1])}
+
         vocab_stoi_file = open(data_dir + "/vocab_stoi.json", "w", encoding="utf-8")
         vocab_freq_file = open(data_dir + "/vocab_freq.json", "w", encoding="utf-8")
-        json.dump(TEXT.vocab.stoi, vocab_stoi_file, ensure_ascii=False)
-        json.dump(TEXT.vocab.freqs, vocab_freq_file, ensure_ascii=False)
+        json.dump(vocab_stoi, vocab_stoi_file, ensure_ascii=False)
+        json.dump(vocab_freq, vocab_freq_file, ensure_ascii=False)
         vocab_stoi_file.close()
         vocab_freq_file.close()
-        return TEXT.vocab.stoi, TEXT.vocab.freqs
+        return vocab_stoi, vocab_freq
+
+
+# See https://pytorch.org/tutorials/beginner/text_sentiment_ngrams_tutorial.html#codecell2
+def _yield_tokens(data_iter):
+    for line in data_iter:
+        yield(line.split(' '))
 
 
 def load_tokenizer(dataset):
