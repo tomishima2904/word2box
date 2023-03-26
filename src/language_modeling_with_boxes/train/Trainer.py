@@ -46,12 +46,12 @@ class Trainer:
         self.n_gram = n_gram
         self.lr = lr
         self.vocab = vocab
-        self.vocab_size = len(self.vocab.itos)
+        self.vocab_size = len(self.vocab["itos"])
         self.negative_samples = negative_samples
         self.log_frequency = log_frequency
-        self.vocab.freqs["<pad>"] = 0  # Don't want to negaive sample pads.
+        self.vocab["freqs"]["<pad>"] = 0  # Don't want to negaive sample pads.
         sorted_freqs = torch.tensor(
-            [self.vocab.freqs.get(key, 0) for key in self.vocab.itos]
+            [self.vocab["freqs"].get(key, 0) for key in self.vocab["itos"]]
         )
         self.sampling = torch.pow(sorted_freqs, 0.75)
         self.sampling = self.sampling / torch.sum(self.sampling)
@@ -317,9 +317,6 @@ class TrainerWordSimilarity(Trainer):
             writer.add_scalar("loss", row.losses, row.epoch)
             writer.add_scalar("test_score", row.test_scores, row.epoch)
 
-        # Logging embeddings
-        # writer.add_embedding(model.embeddings_word.weight, self.vocab.itos, global_step=epoch+1, tag="embeddings_word")
-
         writer.close()
 
         print("Model trained.")
@@ -347,16 +344,16 @@ class TrainerWordSimilarity(Trainer):
                         row[0] = row[0].lower()
                         row[1] = row[1].lower()
                         if (
-                            self.vocab.stoi.get(row[0], "<unk>") != "<unk>"
-                            and self.vocab.stoi.get(row[1], "<unk>") != "<unk>"
+                            self.vocab["stoi"].get(row[0], "<unk>") != "<unk>"
+                            and self.vocab["stoi"].get(row[1], "<unk>") != "<unk>"
                         ):
                             word1 = (
-                                torch.tensor(self.vocab.stoi[row[0]], dtype=int)
+                                torch.tensor(self["vocab"].stoi[row[0]], dtype=int)
                                 .unsqueeze(0)
                                 .to(self.device)
                             )
                             word2 = (
-                                torch.tensor(self.vocab.stoi[row[1]], dtype=int)
+                                torch.tensor(self.vocab["stoi"][row[1]], dtype=int)
                                 .unsqueeze(0)
                                 .to(self.device)
                             )
