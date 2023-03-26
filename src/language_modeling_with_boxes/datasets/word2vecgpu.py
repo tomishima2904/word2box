@@ -13,7 +13,7 @@ class Word2VecDatasetOnDevice(Dataset):
         self,
         corpus: LongTensor,
         window_size: int = 10,
-        vocab: Dict = None,
+        vocab: Union[Dict, Any] = None,
         subsample_thresh: float = 1e-3,
         eos_mask: bool = True,
         device: Union[int, str] = None,
@@ -24,15 +24,15 @@ class Word2VecDatasetOnDevice(Dataset):
         self.vocab = vocab
         self.subsample_thresh = subsample_thresh
         self.eos_mask = eos_mask
-        self.pad_id = torch.tensor(self.vocab["stoi"]["<pad>"]).to(self.corpus.device)
-        self.eos_token = torch.tensor(self.vocab["stoi"]["<eos>"]).to(self.corpus.device)
+        self.pad_id = torch.tensor(self.vocab.stoi["<pad>"]).to(self.corpus.device)
+        self.eos_token = torch.tensor(self.vocab.stoi["<eos>"]).to(self.corpus.device)
         self.ignore_unk = ignore_unk
-        self.unk_token = torch.tensor(self.vocab["stoi"]["<unk>"]).to(self.corpus.device)
+        self.unk_token = torch.tensor(self.vocab.stoi["<unk>"]).to(self.corpus.device)
         # pad this at the beginning and end with window_size number of padding
         self.pad_size = 10
-        total_words = sum(self.vocab["freqs"].values())
+        total_words = sum(self.vocab.freqs.values())
         unigram_prob = (
-            torch.tensor([self.vocab["freqs"].get(key, 0) for key in self.vocab["itos"]])
+            torch.tensor([self.vocab.freqs.get(key, 0) for key in self.vocab.itos])
             / total_words
         )
         self.subsampling_prob = 1.0 - torch.sqrt(
