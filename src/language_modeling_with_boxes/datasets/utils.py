@@ -126,6 +126,8 @@ def load_train_data_as_tensor(dataset):
     return train_tensor
 
 
+# Original func but I don't use
+# Because I splited this func into `get_vocab` and `get_train_iter`
 def get_iter_on_device(
     batch_size,
     dataset,
@@ -143,18 +145,21 @@ def get_iter_on_device(
 
     ## Create Vocabulary properties
     print("Creating iterable dataset ...")
-    TEXT = torchtext.data.Field()
-    TEXT.stoi = vocab_stoi
-    TEXT.freqs = vocab_freq
-    TEXT.itos = [k for k, v in sorted(vocab_stoi.items(), key=lambda item: item[1])]
+    vocab_itos = [k for k, v in sorted(vocab_stoi.items(), key=lambda item: item[1])]
+
+    vocab = {
+        "stoi": vocab_stoi,
+        "freqs": vocab_freq,
+        "itos": vocab_itos,
+    }
 
     # Since we won't train on <pad> and <eos>. These should not come in any sort of
     # subsampling and negative sampling part.
-    TEXT.freqs["<pad>"] = 0
-    TEXT.freqs["<unk>"] = 0
+    vocab_freq["<pad>"] = 0
+    vocab_freq["<unk>"] = 0
 
     if eos_mask:
-        TEXT.freqs["<eos>"] = 0
+        vocab_freq["<eos>"] = 0
     # We want to pad max window length pad tokens and eos to the start
     # and to the end of the corpus and remove <unk> tokens
 
@@ -172,7 +177,7 @@ def get_iter_on_device(
         training_tensor=train_tokenized,
         n_splits=1000,
         window_size=n_gram,
-        vocab=TEXT,
+        vocab=vocab,
         subsample_thresh=subsample_thresh,
         eos_mask=eos_mask,
         device=data_device,
@@ -181,4 +186,56 @@ def get_iter_on_device(
     )
 
     val_iter, test_iter = None, None
-    return TEXT, train_iter, val_iter, test_iter, None
+    return vocab, train_iter, val_iter, test_iter, None
+
+
+def get_vocab(dataset, eos_mask):
+    print("Loading VOCAB & Tokenized Training files ...")
+    vocab_stoi, vocab_freq = load_vocab("./data/" + dataset)
+
+    ## Create Vocabulary properties
+    print("Creating iterable dataset ...")
+    vocab_itos = [k for k, v in sorted(vocab_stoi.items(), key=lambda item: item[1])]
+
+    vocab = {
+        "stoi": vocab_stoi,
+        "freqs": vocab_freq,
+        "itos": vocab_itos,
+    }
+
+    # Since we won't train on <pad> and <eos>. These should not come in any sort of
+    # subsampling and negative sampling part.
+    vocab_freq["<pad>"] = 0
+    vocab_freq["<unk>"] = 0
+
+    if eos_mask:
+        vocab_freq["<eos>"] = 0
+
+    return vocab
+
+
+def get_train_iter(
+        batch_size,
+        dataset,
+        model_type,
+        n_gram,
+        subsample_thresh,
+        data_device,
+        add_pad,
+        eos_mask,
+        ignore_unk,
+        vocab,
+    ):
+    train_tokenized = load_train_data_as_tensor(dataset)
+    train_iter = LazyDatasetLoader(
+        training_tensor=train_tokenized,
+        n_splits=1000,
+        window_size=n_gram,
+        vocab=vocab,
+        subsample_thresh=subsample_thresh,
+        eos_mask=eos_mask,
+        device=data_device,
+        batch_size=batch_size,
+        ignore_unk=ignore_unk,
+    )
+    return train_iter
