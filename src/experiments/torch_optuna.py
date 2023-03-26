@@ -322,7 +322,8 @@ def objective(trial):
 
 
 if __name__ == "__main__":
-    save_dir = "results/optuna_study"
+    date_time = fh.get_8char_datetime()
+    save_dir = f"results/study_{date_time}"
     if not os.path.isdir(save_dir):
         os.makedirs(save_dir)
     logzero.logfile(f"{save_dir}/logfile.log", disableStderrLogger=True)
