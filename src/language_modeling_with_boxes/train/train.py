@@ -5,7 +5,7 @@ import datetime, json, os
 from .Trainer import Trainer, TrainerWordSimilarity
 
 from ..models import Word2Box, Word2Vec, Word2VecPooled, Word2BoxConjunction, Word2Gauss
-from ..datasets.utils import get_iter_on_device
+from ..datasets.utils import get_vocab, get_train_iter
 
 import json
 
@@ -29,7 +29,9 @@ def training(config):
     torch.manual_seed(config["seed"])
     random.seed(config["seed"])
 
-    TEXT, train_iter, val_iter, test_iter, subsampling_prob = get_iter_on_device(
+    vocab = get_vocab(config["dataset"], config["eos_mask"])
+    vocab_size = len(vocab["stoi"])
+    train_iter = get_train_iter(
         config["batch_size"],
         config["dataset"],
         config["model_type"],
@@ -39,11 +41,13 @@ def training(config):
         config["add_pad"],
         config["eos_mask"],
         config["ignore_unk"],
+        vocab,
     )
+    val_iter = None
 
     if config["model_type"] == "Word2Box":
         model = Word2Box(
-            vocab_size=len(TEXT.stoi),
+            vocab_size=vocab_size,
             embedding_dim=config["embedding_dim"],
             batch_size=config["batch_size"],
             n_gram=config["n_gram"],
@@ -55,7 +59,7 @@ def training(config):
 
     elif config["model_type"] == "Word2Vec":
         model = Word2Vec(
-            vocab_size=len(TEXT.stoi),
+            vocab_size=vocab_size,
             embedding_dim=config["embedding_dim"],
             batch_size=config["batch_size"],
             n_gram=config["n_gram"],
@@ -63,7 +67,7 @@ def training(config):
 
     elif config["model_type"] == "Word2VecPooled":
         model = Word2VecPooled(
-            vocab_size=len(TEXT.stoi),
+            vocab_size=vocab_size,
             embedding_dim=config["embedding_dim"],
             batch_size=config["batch_size"],
             n_gram=config["n_gram"],
@@ -71,7 +75,7 @@ def training(config):
         )
     elif config["model_type"] == "Word2BoxConjunction":
         model = Word2BoxConjunction(
-            vocab_size=len(TEXT.stoi),
+            vocab_size=vocab_size,
             embedding_dim=config["embedding_dim"],
             batch_size=config["batch_size"],
             n_gram=config["n_gram"],
@@ -81,7 +85,7 @@ def training(config):
         )
     elif config["model_type"] == "Word2Gauss":
         model = Word2Gauss(
-            vocab_size=len(TEXT.stoi),
+            vocab_size=vocab_size,
             embedding_dim=config["embedding_dim"],
             batch_size=config["batch_size"],
             n_gram=config["n_gram"],
@@ -97,7 +101,7 @@ def training(config):
         trainer = TrainerWordSimilarity(
             train_iter=train_iter,
             val_iter=val_iter,
-            vocab=TEXT,
+            vocab=vocab,
             lr=config["lr"],
             n_gram=config["n_gram"],
             lang=config["lang"],
@@ -120,7 +124,7 @@ def training(config):
         trainer = TrainerWordSimilarity(
             train_iter=train_iter,
             val_iter=val_iter,
-            vocab=TEXT,
+            vocab=vocab,
             lr=config["lr"],
             n_gram=config["n_gram"],
             lang=config["lang"],
