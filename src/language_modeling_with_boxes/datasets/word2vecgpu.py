@@ -2,7 +2,7 @@ import torch
 from torch import LongTensor, BoolTensor, Tensor
 from torch.utils.data import Dataset
 from typing import List, Tuple, Dict, Any, Union
-
+from torch.utils.data import DataLoader
 from pytorch_utils import TensorDataLoader
 
 import attr
@@ -184,7 +184,8 @@ class LazyDatasetLoader:
                 eos_mask=self.eos_mask,
                 ignore_unk=self.ignore_unk,
             ).to(self.device)
-            train_iter = TensorDataLoader(train_dataset, self.batch_size, shuffle=True)
+            #  train_iter = TensorDataLoader(train_dataset, self.batch_size, shuffle=True)
+            train_iter = DataLoader(train_dataset, self.batch_size, shuffle=True)
             yield from train_iter
             del train_dataset
             del train_iter
