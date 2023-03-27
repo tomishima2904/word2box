@@ -2,6 +2,7 @@ import optuna
 import lightning.pytorch as pl
 from lightning.pytorch import Trainer
 from lightning.pytorch.callbacks import ModelCheckpoint
+from lightning.pytorch.loggers import CSVLogger
 
 import time
 from pathlib import Path
@@ -18,6 +19,9 @@ parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.append(parent_dir)
 from utils import file_handlers as fh
 
+
+date_time = fh.get_8char_datetime()
+SAVE_DIR = f"tmp/study_{date_time}"
 
 CONFIG = {
     "batch_size": 8192,
@@ -53,6 +57,9 @@ def objective(trial):
     # モデルの定義
     model = LitModel(n_gram, trial, CONFIG, VOCAB)
 
+    # ロガーの作成
+    logger = CSVLogger(SAVE_DIR, name="study")
+
     # 訓練
     if CONFIG["cuda"]:
         # polarisはGPU2枚なので、devices=2
@@ -60,10 +67,12 @@ def objective(trial):
                           devices=-1,
                           accelerator="gpu",
                           strategy="ddp",
-                          benchmark=True)
+                          benchmark=True,
+                          logger=logger)
     else:
         trainer = Trainer(max_epochs=CONFIG["num_epochs"],
-                          accelerator="cpu")
+                          accelerator="cpu",
+                          logger=logger)
     trainer.fit(model, dataset)
 
     # 最後のエポックのロスを取得
@@ -75,11 +84,10 @@ def objective(trial):
 
 
 if __name__ == "__main__":
-    date_time = fh.get_8char_datetime()
-    save_dir = f"results/study_{date_time}"
-    if not os.path.isdir(save_dir):
-        os.makedirs(save_dir)
-    logzero.logfile(f"{save_dir}/logfile.log", disableStderrLogger=True)
+
+    if not os.path.isdir(SAVE_DIR):
+        os.makedirs(SAVE_DIR)
+    logzero.logfile(f"{SAVE_DIR}/logfile.log", disableStderrLogger=True)
 
     study = optuna.create_study(directions=["minimize", "maximize"])
     study.optimize(objective, n_trials=50)
