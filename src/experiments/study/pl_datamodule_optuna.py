@@ -17,8 +17,8 @@ class MyDataModule(pl.LightningDataModule):
         self.subsample_thresh = trial.suggest_float("subsample_thresh", 1e-4, 1, log=True)
 
 
-    def setup(self):
-        self.train_tokenized = load_train_data_as_tensor(self.datadir)
+    def setup(self, stage=None):
+        self.train_tokenized = load_train_data_as_tensor(self.data_dir)
 
 
     def train_dataloder(self):

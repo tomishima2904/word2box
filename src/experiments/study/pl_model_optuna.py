@@ -62,9 +62,19 @@ class LitModel(pl.LightningModule):
         self.similarity_datasets_dir = config["eval_file"]
 
         self.metrics = {}
-        self.eval_dataset = "En-Simlex-999.Txt" if self.lang == "en" else "Jwsan-1400-Asso.Tsv"
+        if self.config["lang"] == "en":
+            self.eval_dataset = "En-Simlex-999.Txt"
+        elif self.config["lang"] == "ja":
+            self.eval_dataset = "Jwsan-1400-Asso.Tsv"
+        else:
+            raise ValueError("Lang type is not valid. Please enter `en` or `ja`.")
         self.best_ws_score = -1
 
+        sorted_freqs = torch.tensor(
+            [self.vocab["freqs"].get(key, 0) for key in self.vocab["itos"]]
+        )
+        self.sampling = torch.pow(sorted_freqs, 0.75)
+        self.sampling = self.sampling / torch.sum(self.sampling)
         # If subsampling has been done earlier then word count must have been changed
         # This is an expected word count based on the subsampling prob parameters.
         if subsampling_prob != None:
