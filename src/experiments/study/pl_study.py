@@ -56,14 +56,14 @@ def objective(trial):
     # 訓練
     if CONFIG["cuda"]:
         # polarisはGPU2枚なので、devices=2
-        trainer = Trainer(devices=2,
+        trainer = Trainer(max_epochs=CONFIG["num_epochs"],
+                          devices=-1,
                           accelerator="gpu",
                           strategy="ddp",
-                          benchmark=True,
-                          val_check_interval=1/CONFIG["log_frequency"])
+                          benchmark=True)
     else:
-        trainer = Trainer(accelerator="cpu",
-                          val_check_interval=1/CONFIG["log_frequency"])
+        trainer = Trainer(max_epochs=CONFIG["num_epochs"],
+                          accelerator="cpu")
     trainer.fit(model, dataset)
 
     # 最後のエポックのロスを取得

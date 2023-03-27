@@ -184,27 +184,28 @@ class LitModel(pl.LightningModule):
 
 
     # This func was copied from train/Trainer.py
-    def validation_step(self, batch, batch_idx):
-        ws_metric = self.model_eval(self.model)
-        loss = np.mean(self.epoch_loss)
-        self.metrics.update({"epoch_loss": loss})
-        # Update the metric for wandb login
-        self.metrics.update(ws_metric)
+    def on_train_batch_end(self, batch, batch_idx):
+        if batch_idx % int(self.config["log_frequency"]) == 0:
+            ws_metric = self.model_eval(self.model)
+            loss = np.mean(self.epoch_loss)
+            self.metrics.update({"epoch_loss": loss})
+            # Update the metric for wandb login
+            self.metrics.update(ws_metric)
 
-        simlex_ws = self.metrics[self.eval_dataset]
-        self.best_ws_score = max(self.metrics[self.eval_dataset], self.best_ws_score)
-        self.metrics.update({"best_ws_score": self.best_ws_score})
-        epoch = self.current_epoch
-        print(
-            "Epoch {0}| Step: {3} | Loss: {1}| spearmanr: {2}".format(
-                epoch + 1, loss, simlex_ws, batch_idx
+            simlex_ws = self.metrics[self.eval_dataset]
+            self.best_ws_score = max(self.metrics[self.eval_dataset], self.best_ws_score)
+            self.metrics.update({"best_ws_score": self.best_ws_score})
+            epoch = self.current_epoch
+            print(
+                "Epoch {0}| Step: {3} | Loss: {1}| spearmanr: {2}".format(
+                    epoch + 1, loss, simlex_ws, batch_idx
+                )
             )
-        )
-        logzero.logger.info(f"Epoch {epoch+1}  | Step:{batch_idx}  | Loss: {loss}| spearmanr: {simlex_ws}")
+            logzero.logger.info(f"Epoch {epoch+1}  | Step:{batch_idx}  | Loss: {loss}| spearmanr: {simlex_ws}")
 
 
     # Epoch終了時にもログを取る
-    def on_validation_epoch_end(self):
+    def on_train_epoch_end(self):
         ws_metric = self.model_eval(self.model)
         loss = np.mean(self.epoch_loss)
         self.metrics.update({"epoch_loss": loss})
