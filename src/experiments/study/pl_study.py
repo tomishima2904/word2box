@@ -8,12 +8,15 @@ from pathlib import Path
 import logzero
 import joblib
 import os
+import sys
 
 from pl_model_optuna import LitModel
 from pl_datamodule_optuna import MyDataModule
 from language_modeling_with_boxes.datasets.utils import get_vocab
 
-from ..utils import file_handlers as fh
+parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+sys.path.append(parent_dir)
+from utils import file_handlers as fh
 
 
 CONFIG = {
