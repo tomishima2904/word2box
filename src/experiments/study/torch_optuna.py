@@ -24,11 +24,12 @@ from language_modeling_with_boxes.train.Trainer import TrainerWordSimilarity
 from language_modeling_with_boxes.train.negative_sampling import \
     RandomNegativeCBOW, RandomNegativeSkipGram
 
+from ..utils import file_handlers as fh
+
 
 CONFIG = {
     "batch_size": 8192,
     "box_type": "BoxTensor",
-    "data_device": "cuda:1",
     "dataset": "example",
     "eval_file": "./data/ja_similarity_datasets/",
     "ignore_unk": True,
@@ -329,7 +330,6 @@ if __name__ == "__main__":
     logzero.logfile(f"{save_dir}/logfile.log", disableStderrLogger=True)
 
     study = optuna.create_study(directions=["minimize", "maximize"])
-    study.optimize(objective, n_trials=50)
 
     print(f"Number of trials on the Pareto front: {len(study.best_trials)}")
 
