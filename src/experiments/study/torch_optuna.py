@@ -48,10 +48,10 @@ CONFIG = {
 }
 
 W2V_DIRS = {
-    50: None,
-    100: "results/230308105015",
-    200: None,
-    300: None,
+    50: "word2vec_ja_d50",
+    100: "word2vec_ja_d100",
+    200: "word2vec_ja_d200",
+    300: "word2vec_ja_d300",
 }
 
 VOCAB = get_vocab(CONFIG["dataset"], CONFIG["eos_mask"])
