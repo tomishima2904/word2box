@@ -100,4 +100,4 @@ if __name__ == "__main__":
     logzero.logger.info(f"params: {trial_with_lowest_loss.params}")
     logzero.logger.info(f"values: {trial_with_lowest_loss.values}")
 
-    joblib.dump(study, f"{save_dir}/study.pkl")
+    joblib.dump(study, f"{SAVE_DIR}/study.pkl")
