@@ -23,7 +23,8 @@ RUN if ! id -u $USERNAME > /dev/null 2>&1; then \
 RUN apt-get update -y && apt-get upgrade -y && apt-get install -y \
     python3 python3-pip python3-dev python-is-python3 \
     build-essential ca-certificates language-pack-ja \
-    nano vim wget curl file git
+    nano vim wget curl file git make xz-utils \
+    mecab libmecab-dev mecab-ipadic-utf8
 
 # Word2Boxの環境構築
 # Dev env of Word2Box
