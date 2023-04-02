@@ -1,4 +1,4 @@
-version: '3.9'
+version: '3'
 
 services:
   w2b:
@@ -8,11 +8,6 @@ services:
       dockerfile: Dockerfile
       network: host
       shm_size: 5gb
-      deploy:
-      resources:
-        reservations:
-          devices:
-            - capabilities: [gpu]
     volumes:
       - /mnt/tomishima2904/word2box:/mnt/tomishima2904/word2box
       - /wort/tomishima2904/word2box:/work/tomishima2904/word2box
