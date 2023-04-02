@@ -1,0 +1,22 @@
+version: '3.9'
+
+services:
+  w2b:
+    container_name: docker-word2box
+    build:
+      context: .
+      dockerfile: Dockerfile
+      network: host
+      shm_size: 5gb
+      deploy:
+      resources:
+        reservations:
+          devices:
+            - capabilities: [gpu]
+    volumes:
+      - /mnt/tomishima2904/word2box:/mnt/tomishima2904/word2box
+      - /wort/tomishima2904/word2box:/work/tomishima2904/word2box
+    ports:
+      - '192.168.0.123:4415:4415'
+    stdin_open: true
+    tty: true
