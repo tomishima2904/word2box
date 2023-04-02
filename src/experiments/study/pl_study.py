@@ -67,11 +67,13 @@ def objective(trial):
                           devices=-1,
                           accelerator="gpu",
                           strategy="ddp",
+                          deterministic=True,
                           benchmark=True,
                           logger=logger)
     else:
         trainer = Trainer(max_epochs=CONFIG["num_epochs"],
                           accelerator="cpu",
+                          deterministic=True,
                           logger=logger)
     trainer.fit(model, dataset)
 

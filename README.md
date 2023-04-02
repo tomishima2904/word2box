@@ -9,9 +9,8 @@ conda install pytorch==1.7.1 -c pytorch
 ```
 ```
 git clone {repo-url} --recurse-submodules
-cd word2box
-pip install -e lib/*
-pip install -e .
+docker compose build
+docker compose run -d --name word2box
 ```
 ## Usage
 This package will install a command accessible as follows:
