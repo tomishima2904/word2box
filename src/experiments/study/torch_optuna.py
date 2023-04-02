@@ -14,6 +14,7 @@ import argparse
 import random
 import joblib
 import os
+import sys
 
 import optuna
 
@@ -24,12 +25,15 @@ from language_modeling_with_boxes.train.Trainer import TrainerWordSimilarity
 from language_modeling_with_boxes.train.negative_sampling import \
     RandomNegativeCBOW, RandomNegativeSkipGram
 
-from ..utils import file_handlers as fh
+parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+sys.path.append(parent_dir)
+from utils import file_handlers as fh
 
 
 CONFIG = {
     "batch_size": 8192,
     "box_type": "BoxTensor",
+    "data_device": "cuda",
     "dataset": "example",
     "eval_file": "./data/ja_similarity_datasets/",
     "ignore_unk": True,
@@ -330,6 +334,7 @@ if __name__ == "__main__":
     logzero.logfile(f"{save_dir}/logfile.log", disableStderrLogger=True)
 
     study = optuna.create_study(directions=["minimize", "maximize"])
+    study.optimize(objective, n_trials=2)
 
     print(f"Number of trials on the Pareto front: {len(study.best_trials)}")
 
