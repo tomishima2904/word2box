@@ -12,8 +12,9 @@ import os
 import sys
 
 from pl_model_optuna import LitModel
-from pl_datamodule_optuna import MyDataModule
 from language_modeling_with_boxes.datasets.utils import get_vocab
+from language_modeling_with_boxes.datasets.utils import get_train_iter
+
 
 parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.append(parent_dir)
@@ -68,7 +69,22 @@ def objective(trial):
     else:
         checkpoint_callback = ModelCheckpoint(save_top_k=0)
 
-    # 訓練
+    # 訓練    # データローダーの定義
+    subsample_thresh = trial.suggest_float("subsample_thresh", 1e-4, 1, log=True)
+    train_dataloader = get_train_iter(
+        CONFIG["batch_size"],
+        CONFIG["dataset"],
+        CONFIG["model_type"],
+        n_gram,
+        subsample_thresh,
+        CONFIG["data_device"],
+        CONFIG["add_pad"],
+        CONFIG["eos_mask"],
+        CONFIG["ignore_unk"],
+        VOCAB,
+    )
+
+
     if CONFIG["cuda"]:
         # polarisはGPU2枚なので、devices=2
         trainer = Trainer(max_epochs=CONFIG["num_epochs"],
