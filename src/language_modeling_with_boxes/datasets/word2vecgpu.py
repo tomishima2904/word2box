@@ -184,8 +184,8 @@ class LazyDatasetLoader:
                 eos_mask=self.eos_mask,
                 ignore_unk=self.ignore_unk,
             ).to(self.device)
-            #  train_iter = TensorDataLoader(train_dataset, self.batch_size, shuffle=True)
-            train_iter = DataLoader(train_dataset, self.batch_size, shuffle=True)
+            train_iter = TensorDataLoader(train_dataset, self.batch_size, shuffle=True)
+            # train_iter = DataLoader(train_dataset, self.batch_size, shuffle=True)
             yield from train_iter
             del train_dataset
             del train_iter
