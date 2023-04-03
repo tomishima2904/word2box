@@ -58,7 +58,15 @@ def objective(trial):
     model = LitModel(n_gram, trial, CONFIG, VOCAB)
 
     # ロガーの作成
-    logger = CSVLogger(SAVE_DIR, name="study")
+    trial_number = trial.number
+    logger = CSVLogger(SAVE_DIR, name=f"trial_{trial_number}")
+
+    # チェックポイントの設定
+    # If `save_model` is True, you can save the best model
+    if CONFIG["save_model"]:
+        checkpoint_callback = ModelCheckpoint(save_top_k=1)
+    else:
+        checkpoint_callback = ModelCheckpoint(save_top_k=0)
 
     # 訓練
     if CONFIG["cuda"]:
@@ -69,13 +77,15 @@ def objective(trial):
                           strategy="ddp",
                           deterministic=True,
                           benchmark=True,
-                          logger=logger)
+                          logger=logger,
+                          callbacks=[checkpoint_callback])
     else:
         trainer = Trainer(max_epochs=CONFIG["num_epochs"],
                           accelerator="cpu",
                           deterministic=True,
-                          logger=logger)
-    trainer.fit(model, dataset)
+                          logger=logger,
+                          callbacks=[checkpoint_callback])
+    trainer.fit(model, train_dataloader)
 
     # 最後のエポックのロスを取得
     last_epoch_metrics = trainer.logged_metrics[-1]
