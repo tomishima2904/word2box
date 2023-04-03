@@ -62,6 +62,7 @@ class LitModel(pl.LightningModule):
 
         self.loss_fn = self._specify_loss_fn(config["loss_fn"])
         self.similarity_datasets_dir = config["eval_file"]
+        self.data_device = config["data_device"]
 
         self.metrics = {}
         if self.config["lang"] == "en":
@@ -75,13 +76,13 @@ class LitModel(pl.LightningModule):
         sorted_freqs = torch.tensor(
             [self.vocab["freqs"].get(key, 0) for key in self.vocab["itos"]]
         )
-        self.sampling = torch.pow(sorted_freqs, 0.75)
+        self.sampling = torch.pow(sorted_freqs, 0.75).to(self.data_device)
         self.sampling = self.sampling / torch.sum(self.sampling)
         # If subsampling has been done earlier then word count must have been changed
         # This is an expected word count based on the subsampling prob parameters.
         if subsampling_prob != None:
             self.sampling = (
-                torch.min(torch.tensor(1.0).to(self.device), 1 - subsampling_prob.to(self.device))
+                torch.min(torch.tensor(1.0).to(self.data_device), 1 - subsampling_prob.to(self.data_device))
                 * self.sampling
             )
         if model_mode == "CBOW":
@@ -160,6 +161,7 @@ class LitModel(pl.LightningModule):
         self.batch_idx = batch_idx
 
         # Create negative samples for the batch
+        batch = self._to(batch, self.data_device)
         batch = self.add_negatives(batch)
 
         # Forward
@@ -232,6 +234,15 @@ class LitModel(pl.LightningModule):
 
 
     # Not pl's func
+    # See to() in in train/Trainer.py
+    # If possible, I won't use
+    def _to(self, batch, device):
+        for k, v in batch.items():
+            batch[k] = batch[k].to(device)
+        return batch
+
+
+    # Not pl's func
     # See model_eval() in train/Trainer.py
     def model_eval(self, model):
         metrics = {}
@@ -257,12 +268,12 @@ class LitModel(pl.LightningModule):
                             word1 = (
                                 torch.tensor(self.vocab["stoi"][row[0]], dtype=int)
                                 .unsqueeze(0)
-                                .to(self.device)
+                                .to(self.data_device)
                             )
                             word2 = (
                                 torch.tensor(self.vocab["stoi"][row[1]], dtype=int)
                                 .unsqueeze(0)
-                                .to(self.device)
+                                .to(self.data_device)
                             )
                             score = model.word_similarity(word1, word2)
                             if file.title() == "Hyperlex-Dev.Txt":
