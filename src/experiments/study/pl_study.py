@@ -27,7 +27,7 @@ SAVE_DIR = f"tmp/study_{date_time}"
 CONFIG = {
     "batch_size": 8192,
     "box_type": "BoxTensor",
-    "data_device": "cuda",
+    "data_device": "cuda:1",
     "dataset": "example",
     "eval_file": "./data/ja_similarity_datasets/",
     "ignore_unk": True,
@@ -52,9 +52,6 @@ VOCAB_SIZE = len(VOCAB["stoi"])
 def objective(trial):
     n_gram = trial.suggest_int("n_gram", 3, 10)
 
-    # 訓練用データセットの準備
-    dataset = MyDataModule(n_gram, trial, CONFIG, VOCAB)
-
     # モデルの定義
     model = LitModel(n_gram, trial, CONFIG, VOCAB)
 
@@ -69,7 +66,7 @@ def objective(trial):
     else:
         checkpoint_callback = ModelCheckpoint(save_top_k=0)
 
-    # 訓練    # データローダーの定義
+    # データローダーの定義
     subsample_thresh = trial.suggest_float("subsample_thresh", 1e-4, 1, log=True)
     train_dataloader = get_train_iter(
         CONFIG["batch_size"],
@@ -84,11 +81,15 @@ def objective(trial):
         VOCAB,
     )
 
-
+    # 訓練
     if CONFIG["cuda"]:
+        if CONFIG["data_device"] == "cuda:1":
+            devices = [1]
+        else:
+            devices = [0]
         # polarisはGPU2枚なので、devices=2
         trainer = Trainer(max_epochs=CONFIG["num_epochs"],
-                          devices=-1,
+                          devices=devices,
                           accelerator="gpu",
                           strategy="ddp",
                           deterministic=True,
