@@ -1,8 +1,14 @@
 version: '3'
 
 services:
+  db:
+    container_name: mysql
+    image: mysql:8
+    env_file: ./.env
+    ports:
+      - 3306:3306
   w2b:
-    container_name: docker-word2box
+    container_name: word2box
     build:
       context: .
       dockerfile: Dockerfile
@@ -12,6 +18,8 @@ services:
       - /mnt/tomishima2904/word2box:/mnt/tomishima2904/word2box
       - /wort/tomishima2904/word2box:/work/tomishima2904/word2box
     ports:
-      - '192.168.0.123:4415:4415'
+      - '4415:4415'
     stdin_open: true
     tty: true
+    depends_on:
+      - db
