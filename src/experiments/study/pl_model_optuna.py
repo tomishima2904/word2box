@@ -1,5 +1,6 @@
 import torch
 from torch import Tensor, LongTensor, BoolTensor
+import optuna
 
 import time
 from pathlib import Path
@@ -224,6 +225,11 @@ class LitModel(pl.LightningModule):
         )
         logzero.logger.info(f"Epoch {epoch} | Loss: {loss}| spearmanr: {simlex_ws}")
         self.log_dict(self.metrics, on_epoch=True)
+
+        # 枝刈りを行うか判断
+        self.trial.report(loss, simlex_ws)
+        if self.trial.should_prune():
+            raise optuna.exceptions.TrialPruned()
 
 
     # Not pl's func

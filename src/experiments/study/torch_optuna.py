@@ -180,8 +180,8 @@ class TrainerWordSimilarity4Optuna(TrainerWordSimilarity):
 
 
     def train_model(
-            self, model, num_epochs=100, path="./checkpoints", save_model=False,
-            write_summary=False,
+            self, trial, model, num_epochs=100, path="./checkpoints",
+            save_model=False, write_summary=False,
         ):
         ## Setting up the optimizers
         parameters = filter(lambda p: p.requires_grad, model.parameters())
@@ -288,6 +288,12 @@ class TrainerWordSimilarity4Optuna(TrainerWordSimilarity):
             )
             logzero.logger.info(f"Epoch {epoch+1} | Loss: {loss}| spearmanr: {simlex_ws}")
 
+            # 枝刈りを行うか判断
+            trial.report(loss, simlex_ws)
+            if trial.should_prune():
+                raise optuna.exceptions.TrialPruned()
+
+
         return loss, simlex_ws
 
 
@@ -319,6 +325,7 @@ def objective(trial):
 
     # 訓練
     loss, score = trainer.train_model(model=model,
+                                      trial=trial,
                                       num_epochs=CONFIG["num_epochs"],
                                       path=CONFIG.get("save_dir", False),
                                       save_model=CONFIG.get("save_model", False))
