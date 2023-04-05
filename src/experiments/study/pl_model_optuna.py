@@ -227,7 +227,7 @@ class LitModel(pl.LightningModule):
         self.log_dict(self.metrics, on_epoch=True)
 
         # 枝刈りを行うか判断
-        self.trial.report(loss, simlex_ws)
+        self.trial.report(loss)
         if self.trial.should_prune():
             raise optuna.exceptions.TrialPruned()
 
