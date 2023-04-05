@@ -289,7 +289,7 @@ class TrainerWordSimilarity4Optuna(TrainerWordSimilarity):
             logzero.logger.info(f"Epoch {epoch+1} | Loss: {loss}| spearmanr: {simlex_ws}")
 
             # 枝刈りを行うか判断
-            trial.report(loss)
+            trial.report(loss, epoch)
             if trial.should_prune():
                 raise optuna.exceptions.TrialPruned()
 
