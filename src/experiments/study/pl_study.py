@@ -92,20 +92,18 @@ def objective(trial):
                           devices=devices,
                           accelerator="gpu",
                           strategy="ddp",
-                          deterministic=True,
                           benchmark=True,
                           logger=logger,
                           callbacks=[checkpoint_callback])
     else:
         trainer = Trainer(max_epochs=CONFIG["num_epochs"],
                           accelerator="cpu",
-                          deterministic=True,
                           logger=logger,
                           callbacks=[checkpoint_callback])
     trainer.fit(model, train_dataloader)
 
     # 最後のエポックのロスを取得
-    last_epoch_metrics = trainer.logged_metrics[-1]
+    last_epoch_metrics = trainer.logged_metrics
     last_epoch_loss = last_epoch_metrics["epoch_loss"]
     last_epoch_score = last_epoch_metrics["best_ws_score"]
 
