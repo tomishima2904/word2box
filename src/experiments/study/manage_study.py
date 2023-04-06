@@ -22,14 +22,14 @@ def my_create_study(study_name: str, sampler=None) -> None:
         optuna.create_study(
             study_name=study_name,
             storage=f"mysql+pymysql://{user}:{psword}@db:3306/{db}",
-            directions=["minimize", "maximize"],  # loss, score
+            directions=["minimize"],  # loss, score
             sampler=optuna.samplers.RandomSampler(),
         )
     else:
         optuna.create_study(
             study_name=study_name,
             storage=f"mysql+pymysql://{user}:{psword}@db:3306/{db}",
-            directions=["minimize", "maximize"],  # loss, score
+            directions=["minimize"],  # loss, score
         )
     print(f"Seccuessfully study `{study_name}` is created !")
 

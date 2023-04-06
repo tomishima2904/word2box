@@ -289,10 +289,9 @@ class TrainerWordSimilarity4Optuna(TrainerWordSimilarity):
             logzero.logger.info(f"Epoch {epoch+1} | Loss: {loss}| spearmanr: {simlex_ws}")
 
             # 枝刈りを行うか判断
-            trial.report(loss, epoch)
+            trial.report(loss, step=epoch)
             if trial.should_prune():
                 raise optuna.exceptions.TrialPruned()
-
 
         return loss, simlex_ws
 
@@ -330,7 +329,8 @@ def objective(trial):
                                       path=CONFIG.get("save_dir", False),
                                       save_model=CONFIG.get("save_model", False))
 
-    return loss, score
+    return loss  # 枝かりをやる場合、multi objective
+    # return loss, score
 
 
 if __name__ == "__main__":
@@ -340,7 +340,7 @@ if __name__ == "__main__":
         os.makedirs(save_dir)
     logzero.logfile(f"{save_dir}/logfile.log", disableStderrLogger=True)
 
-    study = optuna.create_study(directions=["minimize", "maximize"])
+    study = optuna.create_study(directions=["minimize"])
     study.optimize(objective, n_trials=2)
 
     print(f"Number of trials on the Pareto front: {len(study.best_trials)}")

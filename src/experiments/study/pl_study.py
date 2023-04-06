@@ -107,7 +107,8 @@ def objective(trial):
     last_epoch_loss = last_epoch_metrics["epoch_loss"]
     last_epoch_score = last_epoch_metrics["best_ws_score"]
 
-    return last_epoch_loss, last_epoch_score
+    return last_epoch_loss  # 枝刈りをやる場合、multi objective にしてはいけない
+    # return last_epoch_loss, last_epoch_score
 
 
 if __name__ == "__main__":
@@ -116,7 +117,7 @@ if __name__ == "__main__":
         os.makedirs(SAVE_DIR)
     logzero.logfile(f"{SAVE_DIR}/logfile.log", disableStderrLogger=True)
 
-    study = optuna.create_study(directions=["minimize", "maximize"])
+    study = optuna.create_study(directions=["minimize"])
     study.optimize(objective, n_trials=50)
 
     print(f"Number of trials on the Pareto front: {len(study.best_trials)}")
