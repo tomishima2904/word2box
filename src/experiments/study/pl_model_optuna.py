@@ -54,7 +54,7 @@ class LitModel(pl.LightningModule):
         # For optuna
         # optuna で適した値を探索するためのパラメータ群
         embedding_dim = trial.suggest_categorical("embedding_dim", [50, 100, 200, 300])
-        w2v_dir: str = W2V_DIRS[embedding_dim]
+        w2v_dir: str = f"results/{W2V_DIRS[embedding_dim]}"
         intersection_temp = trial.suggest_categorical("intersection_temp", [0.1, 0.5, 1, 2, 4, 8])
         volume_temp = trial.suggest_float("volume_temp", 1e-5, 1e2, log=True)
         offset_temp = trial.suggest_float("offset_temp", 0.1, 1.0)
