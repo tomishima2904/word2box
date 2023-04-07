@@ -45,11 +45,11 @@ CONFIG = {
     "save_model": False,
 }
 
-VOCAB = get_vocab(CONFIG["dataset"], CONFIG["eos_mask"])
-VOCAB_SIZE = len(VOCAB["stoi"])
-
 
 def objective(trial):
+
+    VOCAB = get_vocab(CONFIG["dataset"], CONFIG["eos_mask"])
+    VOCAB_SIZE = len(VOCAB["stoi"])
     n_gram = trial.suggest_int("n_gram", 3, 10)
 
     # モデルの定義

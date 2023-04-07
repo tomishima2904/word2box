@@ -58,8 +58,6 @@ W2V_DIRS = {
     300: "word2vec_ja_d300",
 }
 
-VOCAB = get_vocab(CONFIG["dataset"], CONFIG["eos_mask"])
-VOCAB_SIZE = len(VOCAB["stoi"])
 
 torch.manual_seed(CONFIG["seed"])
 random.seed(CONFIG["seed"])
@@ -300,6 +298,8 @@ class TrainerWordSimilarity4Optuna(TrainerWordSimilarity):
 # Loss func
 def objective(trial):
     n_gram = trial.suggest_int("n_gram", 3, 10)
+    VOCAB = get_vocab(CONFIG["dataset"], CONFIG["eos_mask"])
+    VOCAB_SIZE = len(VOCAB["stoi"])
 
     # 語彙や訓練用データローダーの準備
     train_iter = get_train_dataloader(n_gram, trial, CONFIG, VOCAB)
