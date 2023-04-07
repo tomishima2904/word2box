@@ -17,28 +17,32 @@ user = os.getenv("MYSQL_USER")
 psword = os.getenv("MYSQL_PASSWORD")
 
 
-def my_create_study(study_name: str, sampler=None) -> None:
+def my_create_study(study_name: str, storage: str, sampler=None) -> None:
     if sampler == "random":
         optuna.create_study(
             study_name=study_name,
-            storage=f"mysql+pymysql://{user}:{psword}@db:3306/{db}",
+            storage=storage,
             directions=["minimize"],  # loss, score
             sampler=optuna.samplers.RandomSampler(),
         )
     else:
         optuna.create_study(
             study_name=study_name,
-            storage=f"mysql+pymysql://{user}:{psword}@db:3306/{db}",
+            storage=storage,
             directions=["minimize"],  # loss, score
         )
     print(f"Seccuessfully study `{study_name}` is created !")
 
 
-def load_and_optimize_study(study_name: str, n_trials: int, objective_type="torch") -> None:
+def my_load_study(study_name: str, storage: str) -> optuna.study:
     study = optuna.load_study(
             study_name=study_name,
-            storage=f"mysql+pymysql://{user}:{psword}@db:3306/{db}",
+            storage=storage,
         )
+    return study
+
+
+def my_optimize_study(study, n_trials: int, objective_type: str="torch") -> None:
     if objective_type == "torch":
         study.optimize(torch_optuna.objective, n_trials=n_trials)
     elif objective_type == "pl":
@@ -57,7 +61,13 @@ if __name__ == "__main__":
         os.makedirs(save_dir)
     logzero.logfile(f"{save_dir}/logfile_1.log", disableStderrLogger=True)
 
-    # study
+    # studyの保存先を定義
     study_name = f"w2b_study_{n}"
-    my_create_study(study_name, sampler="random")
-    load_and_optimize_study(study_name, n_trials=5, objective_type="torch")
+    storage = f"mysql+pymysql://{user}:{psword}@db:3306/{db}"
+
+    # studyを作成・読み込み
+    my_create_study(study_name, storage=storage, sampler="random")
+    study = my_load_study(study_name, storage)
+
+    # 最適化
+    my_optimize_study(study, n_trials=10, objective_type="torch")
