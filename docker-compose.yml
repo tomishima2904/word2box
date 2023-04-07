@@ -13,7 +13,7 @@ services:
       context: .
       dockerfile: Dockerfile
       network: host
-      shm_size: 5gb
+      shm_size: 50gb
     volumes:
       - /mnt/tomishima2904/word2box:/mnt/tomishima2904/word2box
       - /wort/tomishima2904/word2box:/work/tomishima2904/word2box

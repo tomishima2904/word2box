@@ -31,7 +31,7 @@ RUN apt-get update -y && apt-get upgrade -y && apt-get install -y \
 COPY requirements.txt setup.cfg setup.py pyproject.toml fastentrypoints.py ./
 COPY lib ./lib/
 COPY src/language_modeling_with_boxes/ ./src/language_modeling_with_boxes/
-RUN pip install -e lib/*  && pip install -e .
+RUN pip install -e lib/*  && pip install -e . && pip install -r requirements.txt
 
 COPY mecab /mnt/tomishima2904/word2box/mecab/
 
