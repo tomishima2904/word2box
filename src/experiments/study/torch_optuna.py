@@ -32,9 +32,9 @@ from utils import file_handlers as fh
 
 CONFIG = {
     "batch_size": 8192,
-    "box_type": "BoxTensor",
-    "data_device": "cuda",
-    "dataset": "example",
+    "box_type": "CenterBoxTensor",
+    "data_device": "cuda:1",
+    "dataset": "jawiki",
     "eval_file": "./data/ja_similarity_datasets/",
     "ignore_unk": True,
     "lang": "ja",
@@ -341,7 +341,7 @@ if __name__ == "__main__":
     logzero.logfile(f"{save_dir}/logfile.log", disableStderrLogger=True)
 
     study = optuna.create_study(directions=["minimize"])
-    study.optimize(objective, n_trials=2)
+    study.optimize(objective, n_trials=10)
 
     print(f"Number of trials on the Pareto front: {len(study.best_trials)}")
 

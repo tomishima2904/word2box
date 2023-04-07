@@ -118,7 +118,7 @@ if __name__ == "__main__":
     logzero.logfile(f"{SAVE_DIR}/logfile.log", disableStderrLogger=True)
 
     study = optuna.create_study(directions=["minimize"])
-    study.optimize(objective, n_trials=50)
+    study.optimize(objective, n_trials=10)
 
     print(f"Number of trials on the Pareto front: {len(study.best_trials)}")
 
