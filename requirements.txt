@@ -123,6 +123,7 @@ pexpect==4.8.0
 pickleshare==0.7.5
 Pillow==9.5.0
 platformdirs==3.2.0
+plotly==5.14.1
 prometheus-client==0.16.0
 prompt-toolkit==3.0.38
 protobuf==3.20.3
@@ -159,6 +160,7 @@ rfc3986-validator==0.1.1
 rich==13.3.3
 s3transfer==0.6.0
 sacremoses==0.0.53
+scikit-learn==1.2.2
 scipy==1.10.1
 Send2Trash==1.8.0
 sentencepiece==0.1.97
