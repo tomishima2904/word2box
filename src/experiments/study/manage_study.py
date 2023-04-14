@@ -19,19 +19,21 @@ psword = os.getenv("MYSQL_PASSWORD")
 
 def my_create_study(study_name: str, storage: str, sampler=None) -> None:
     if sampler == "random":
-        optuna.create_study(
+        study = optuna.create_study(
             study_name=study_name,
             storage=storage,
             directions=["minimize"],  # loss, score
             sampler=optuna.samplers.RandomSampler(),
+            load_if_exists=True,
         )
     else:
-        optuna.create_study(
+        study = optuna.create_study(
             study_name=study_name,
             storage=storage,
             directions=["minimize"],  # loss, score
+            load_if_exists=True,
         )
-    print(f"Seccuessfully study `{study_name}` is created !")
+    return study
 
 
 def my_load_study(study_name: str, storage: str) -> optuna.study:
@@ -66,8 +68,11 @@ if __name__ == "__main__":
     storage = f"mysql+pymysql://{user}:{psword}@db:3306/{db}"
 
     # studyを作成・読み込み
-    my_create_study(study_name, storage=storage, sampler="random")
-    study = my_load_study(study_name, storage)
+    study = my_create_study(
+        study_name,
+        storage=storage,
+        sampler="random"
+    )
 
     # 最適化
     my_optimize_study(study, n_trials=10, objective_type="torch")
