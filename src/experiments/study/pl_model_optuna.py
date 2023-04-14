@@ -1,5 +1,6 @@
 import torch
 from torch import Tensor, LongTensor, BoolTensor
+import optuna
 
 import time
 from pathlib import Path
@@ -13,6 +14,7 @@ from xopen import xopen
 from scipy.stats import spearmanr
 import pprint
 from typing import List, Tuple, Dict, Any, Union
+import sys
 
 import lightning.pytorch as pl
 
@@ -52,14 +54,16 @@ class LitModel(pl.LightningModule):
         # For optuna
         # optuna で適した値を探索するためのパラメータ群
         embedding_dim = trial.suggest_categorical("embedding_dim", [50, 100, 200, 300])
-        w2v_dir: str = W2V_DIRS[embedding_dim]
+        w2v_dir: str = f"results/{W2V_DIRS[embedding_dim]}"
         intersection_temp = trial.suggest_categorical("intersection_temp", [0.1, 0.5, 1, 2, 4, 8])
         volume_temp = trial.suggest_float("volume_temp", 1e-5, 1e2, log=True)
         offset_temp = trial.suggest_float("offset_temp", 0.1, 1.0)
         self.negative_samples = trial.suggest_categorical("negative_samples", [1, 2, 4, 8])
+        self.margin = trial.suggest_float("margin", 1, 10)
 
         self.loss_fn = self._specify_loss_fn(config["loss_fn"])
         self.similarity_datasets_dir = config["eval_file"]
+        self.data_device = config["data_device"]
 
         self.metrics = {}
         if self.config["lang"] == "en":
@@ -73,13 +77,13 @@ class LitModel(pl.LightningModule):
         sorted_freqs = torch.tensor(
             [self.vocab["freqs"].get(key, 0) for key in self.vocab["itos"]]
         )
-        self.sampling = torch.pow(sorted_freqs, 0.75)
+        self.sampling = torch.pow(sorted_freqs, 0.75).to(self.data_device)
         self.sampling = self.sampling / torch.sum(self.sampling)
         # If subsampling has been done earlier then word count must have been changed
         # This is an expected word count based on the subsampling prob parameters.
         if subsampling_prob != None:
             self.sampling = (
-                torch.min(torch.tensor(1.0).to(self.device), 1 - subsampling_prob.to(self.device))
+                torch.min(torch.tensor(1.0).to(self.data_device), 1 - subsampling_prob.to(self.data_device))
                 * self.sampling
             )
         if model_mode == "CBOW":
@@ -155,7 +159,10 @@ class LitModel(pl.LightningModule):
 
     # Required #
     def training_step(self, batch, batch_idx):
+        self.batch_idx = batch_idx
+
         # Create negative samples for the batch
+        batch = self._to(batch, self.data_device)
         batch = self.add_negatives(batch)
 
         # Forward
@@ -184,8 +191,8 @@ class LitModel(pl.LightningModule):
 
 
     # This func was copied from train/Trainer.py
-    def on_train_batch_end(self, batch, batch_idx):
-        if batch_idx % int(self.config["log_frequency"]) == 0:
+    def on_train_batch_end(self, batch, batch_idx, dataset_idx):
+        if self.batch_idx % int(self.config["log_frequency"]) == 0:
             ws_metric = self.model_eval(self.model)
             loss = np.mean(self.epoch_loss)
             self.metrics.update({"epoch_loss": loss})
@@ -196,12 +203,7 @@ class LitModel(pl.LightningModule):
             self.best_ws_score = max(self.metrics[self.eval_dataset], self.best_ws_score)
             self.metrics.update({"best_ws_score": self.best_ws_score})
             epoch = self.current_epoch
-            print(
-                "Epoch {0}| Step: {3} | Loss: {1}| spearmanr: {2}".format(
-                    epoch + 1, loss, simlex_ws, batch_idx
-                )
-            )
-            logzero.logger.info(f"Epoch {epoch+1}  | Step:{batch_idx}  | Loss: {loss}| spearmanr: {simlex_ws}")
+            logzero.logger.info(f"Epoch {epoch+1}  | Step:{self.batch_idx}  | Loss: {loss}| spearmanr: {simlex_ws}")
 
 
     # Epoch終了時にもログを取る
@@ -218,11 +220,16 @@ class LitModel(pl.LightningModule):
         epoch = self.current_epoch
         print(
             "Epoch {0} | Loss: {1}| spearmanr: {2}".format(
-                epoch + 1, loss, simlex_ws
+                epoch , loss, simlex_ws
             )
         )
-        logzero.logger.info(f"Epoch {epoch+1} | Loss: {loss}| spearmanr: {simlex_ws}")
-        self.log_dict(self.metrics)
+        logzero.logger.info(f"Epoch {epoch} | Loss: {loss}| spearmanr: {simlex_ws}")
+        self.log_dict(self.metrics, on_epoch=True)
+
+        # 枝刈りを行うか判断
+        self.trial.report(loss, step=epoch)
+        if self.trial.should_prune():
+            raise optuna.exceptions.TrialPruned()
 
 
     # Not pl's func
@@ -233,8 +240,17 @@ class LitModel(pl.LightningModule):
 
 
     # Not pl's func
+    # See to() in in train/Trainer.py
+    # If possible, I won't use
+    def _to(self, batch, device):
+        for k, v in batch.items():
+            batch[k] = batch[k].to(device)
+        return batch
+
+
+    # Not pl's func
     # See model_eval() in train/Trainer.py
-    def model_eval(self):
+    def model_eval(self, model):
         metrics = {}
         correlation = 0.0
 
@@ -258,16 +274,16 @@ class LitModel(pl.LightningModule):
                             word1 = (
                                 torch.tensor(self.vocab["stoi"][row[0]], dtype=int)
                                 .unsqueeze(0)
-                                .to(self.device)
+                                .to(self.data_device)
                             )
                             word2 = (
                                 torch.tensor(self.vocab["stoi"][row[1]], dtype=int)
                                 .unsqueeze(0)
-                                .to(self.device)
+                                .to(self.data_device)
                             )
-                            score = self.model.word_similarity(word1, word2)
+                            score = model.word_similarity(word1, word2)
                             if file.title() == "Hyperlex-Dev.Txt":
-                                score = self.model.conditional_similarity(word1, word2)
+                                score = model.conditional_similarity(word1, word2)
 
                             predicted_scores.append(score.item())
                             real_scores.append(float(row[2]))
@@ -279,7 +295,6 @@ class LitModel(pl.LightningModule):
                     correlation = spearmanr(predicted_scores, real_scores)[0]
                     metrics[file.title()] = correlation
 
-        pprint.pprint(metrics, width=1)
         logzero.logger.info(metrics)
 
         return metrics

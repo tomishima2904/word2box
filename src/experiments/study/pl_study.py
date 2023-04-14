@@ -12,8 +12,9 @@ import os
 import sys
 
 from pl_model_optuna import LitModel
-from pl_datamodule_optuna import MyDataModule
 from language_modeling_with_boxes.datasets.utils import get_vocab
+from language_modeling_with_boxes.datasets.utils import get_train_iter
+
 
 parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.append(parent_dir)
@@ -26,7 +27,7 @@ SAVE_DIR = f"tmp/study_{date_time}"
 CONFIG = {
     "batch_size": 8192,
     "box_type": "BoxTensor",
-    "data_device": "cuda",
+    "data_device": "cuda:1",
     "dataset": "example",
     "eval_file": "./data/ja_similarity_datasets/",
     "ignore_unk": True,
@@ -44,45 +45,70 @@ CONFIG = {
     "save_model": False,
 }
 
-VOCAB = get_vocab(CONFIG["dataset"], CONFIG["eos_mask"])
-VOCAB_SIZE = len(VOCAB["stoi"])
-
 
 def objective(trial):
-    n_gram = trial.suggest_int("n_gram", 3, 10)
 
-    # 訓練用データセットの準備
-    dataset = MyDataModule(n_gram, trial, CONFIG, VOCAB)
+    VOCAB = get_vocab(CONFIG["dataset"], CONFIG["eos_mask"])
+    VOCAB_SIZE = len(VOCAB["stoi"])
+    n_gram = trial.suggest_int("n_gram", 3, 10)
 
     # モデルの定義
     model = LitModel(n_gram, trial, CONFIG, VOCAB)
 
     # ロガーの作成
-    logger = CSVLogger(SAVE_DIR, name="study")
+    trial_number = trial.number
+    logger = CSVLogger(SAVE_DIR, name=f"trial_{trial_number}")
+
+    # チェックポイントの設定
+    # If `save_model` is True, you can save the best model
+    if CONFIG["save_model"]:
+        checkpoint_callback = ModelCheckpoint(save_top_k=1)
+    else:
+        checkpoint_callback = ModelCheckpoint(save_top_k=0)
+
+    # データローダーの定義
+    subsample_thresh = trial.suggest_float("subsample_thresh", 1e-4, 1, log=True)
+    train_dataloader = get_train_iter(
+        CONFIG["batch_size"],
+        CONFIG["dataset"],
+        CONFIG["model_type"],
+        n_gram,
+        subsample_thresh,
+        CONFIG["data_device"],
+        CONFIG["add_pad"],
+        CONFIG["eos_mask"],
+        CONFIG["ignore_unk"],
+        VOCAB,
+    )
 
     # 訓練
     if CONFIG["cuda"]:
+        if CONFIG["data_device"] == "cuda:1":
+            devices = [1]
+        else:
+            devices = [0]
         # polarisはGPU2枚なので、devices=2
         trainer = Trainer(max_epochs=CONFIG["num_epochs"],
-                          devices=-1,
+                          devices=devices,
                           accelerator="gpu",
                           strategy="ddp",
-                          deterministic=True,
                           benchmark=True,
-                          logger=logger)
+                          logger=logger,
+                          callbacks=[checkpoint_callback])
     else:
         trainer = Trainer(max_epochs=CONFIG["num_epochs"],
                           accelerator="cpu",
-                          deterministic=True,
-                          logger=logger)
-    trainer.fit(model, dataset)
+                          logger=logger,
+                          callbacks=[checkpoint_callback])
+    trainer.fit(model, train_dataloader)
 
     # 最後のエポックのロスを取得
-    last_epoch_metrics = trainer.logged_metrics[-1]
+    last_epoch_metrics = trainer.logged_metrics
     last_epoch_loss = last_epoch_metrics["epoch_loss"]
     last_epoch_score = last_epoch_metrics["best_ws_score"]
 
-    return last_epoch_loss, last_epoch_score
+    return last_epoch_loss  # 枝刈りをやる場合、multi objective にしてはいけない
+    # return last_epoch_loss, last_epoch_score
 
 
 if __name__ == "__main__":
@@ -91,8 +117,8 @@ if __name__ == "__main__":
         os.makedirs(SAVE_DIR)
     logzero.logfile(f"{SAVE_DIR}/logfile.log", disableStderrLogger=True)
 
-    study = optuna.create_study(directions=["minimize", "maximize"])
-    study.optimize(objective, n_trials=50)
+    study = optuna.create_study(directions=["minimize"])
+    study.optimize(objective, n_trials=10)
 
     print(f"Number of trials on the Pareto front: {len(study.best_trials)}")
 
