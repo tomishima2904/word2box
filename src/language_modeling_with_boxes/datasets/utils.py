@@ -66,6 +66,7 @@ def load_vocab(data_dir: Union[str, Path]):
         # TODO: _yieldがおかしいのかもしれない
         print("DO NOT ENTER")
         sys.exit()
+
         train_txt = Path(data_dir) / "train.txt"
         vocab_freq = Counter()
         with train_txt.open() as train_txt_file:
