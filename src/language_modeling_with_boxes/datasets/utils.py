@@ -7,6 +7,7 @@ from multiprocessing import Manager
 import torch
 import itertools
 from collections import Counter
+import sys
 
 import torchtext
 import torchtext.vocab as vocab
@@ -54,14 +55,18 @@ def load_vocab(data_dir: Union[str, Path]):
                 vocab_freq[token] = int(frequency)
         return vocab_stoi, vocab_freq
 
-    elif path.isfile(data_dir + "vocab_stoi.json") and path.isfile(
-        data_dir + "vocab_freq.json"
+    elif path.isfile(f"{data_dir}/vocab_stoi.json") and \
+        path.isfile(f"{data_dir}/vocab_freq.json"
     ):
-        vocab_stoi = json.load(open(data_dir + "vocab_stoi.json", "r"))
-        vocab_freq = json.load(open(data_dir + "vocab_freq.json", "r"))
+        vocab_stoi = json.load(open(f"{data_dir}/vocab_stoi.json", "r"))
+        vocab_freq = json.load(open(f"{data_dir}/vocab_stoi.json", "r"))
         return vocab_stoi, vocab_freq
 
     else:
+        # TODO: _yieldがおかしいのかもしれない
+        print("DO NOT ENTER")
+        sys.exit()
+
         train_txt = Path(data_dir) / "train.txt"
         vocab_freq = Counter()
         with train_txt.open() as train_txt_file:

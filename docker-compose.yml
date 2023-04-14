@@ -1,0 +1,25 @@
+version: '3'
+
+services:
+  db:
+    container_name: mysql
+    image: mysql:8
+    env_file: ./.env
+    ports:
+      - 3306:3306
+  w2b:
+    container_name: word2box
+    build:
+      context: .
+      dockerfile: Dockerfile
+      network: host
+      shm_size: 80gb
+    volumes:
+      - /mnt/tomishima2904/word2box:/mnt/tomishima2904/word2box
+      - /work/tomishima2904/word2box:/work/tomishima2904/word2box
+    ports:
+      - '4415:4415'
+    stdin_open: true
+    tty: true
+    depends_on:
+      - db
