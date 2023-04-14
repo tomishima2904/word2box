@@ -24,10 +24,10 @@ from language_modeling_with_boxes.models import \
 from language_modeling_with_boxes.train.Trainer import TrainerWordSimilarity
 from language_modeling_with_boxes.train.negative_sampling import \
     RandomNegativeCBOW, RandomNegativeSkipGram
+from utils import file_handlers as fh
 
 parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.append(parent_dir)
-from utils import file_handlers as fh
 
 
 CONFIG = {
@@ -65,12 +65,13 @@ random.seed(CONFIG["seed"])
 
 # 既存関数を使って訓練用のデータローダーを作成
 def get_train_dataloader(
-        n_gram,
-        trial,
-        config,
-        vocab,
-    ):
-    subsample_thresh = trial.suggest_float("subsample_thresh", 1e-4, 1, log=True)
+    n_gram,
+    trial,
+    config,
+    vocab,
+):
+    subsample_thresh = trial.suggest_float(
+        "subsample_thresh", 1e-4, 1, log=True)
 
     train_iter = get_train_iter(
         config["batch_size"],
@@ -88,15 +89,16 @@ def get_train_dataloader(
 
 
 def define_model(
-        n_gram,
-        trial,
-        config,
-        vocab_size,
-    ):
+    n_gram,
+    trial,
+    config,
+    vocab_size,
+):
     # embedding_dim, int_temp, vol_temp をoptunaで探索
-    embedding_dim = trial.suggest_categorical("embedding_dim", [50, 100, 200, 300])
+    embedding_dim = trial.suggest_categorical("embedding_dim", [50, 100])
     w2v_dir = f"results/{W2V_DIRS[embedding_dim]}"
-    intersection_temp = trial.suggest_categorical("intersection_temp", [0.1, 0.5, 1, 2, 4, 8])
+    intersection_temp = trial.suggest_categorical(
+        "intersection_temp", [0.1, 0.5, 1, 2, 4, 8])
     volume_temp = trial.suggest_float("volume_temp", 1e-5, 1e2, log=True)
     offset_temp = trial.suggest_float("offset_temp", 0.1, 1.0)
 
@@ -123,7 +125,8 @@ def define_model(
                                     offset_temp=offset_temp)
 
     else:
-        raise ValueError("Model type is not valid. Please enter a valid model type")
+        raise ValueError(
+            "Model type is not valid. Please enter a valid model type")
 
     if "cuda" in config["data_device"] and torch.cuda.is_available():
         model.to(config["data_device"])
@@ -133,20 +136,20 @@ def define_model(
 
 class TrainerWordSimilarity4Optuna(TrainerWordSimilarity):
     def __init__(
-            self,
-            train_iter,
-            val_iter,
-            vocab,
-            trial,
-            n_gram=4,
-            loss_fn="max_margin",
-            model_mode="CBOW",
-            lang="en",
-            log_frequency=1000,
-            similarity_datasets_dir=None,
-            subsampling_prob=None,
-            device="cpu"
-        ):
+        self,
+        train_iter,
+        val_iter,
+        vocab,
+        trial,
+        n_gram=4,
+        loss_fn="max_margin",
+        model_mode="CBOW",
+        lang="en",
+        log_frequency=1000,
+        similarity_datasets_dir=None,
+        subsampling_prob=None,
+        device="cpu"
+    ):
         super(TrainerWordSimilarity4Optuna, self).__init__(
             train_iter=train_iter,
             val_iter=val_iter,
@@ -161,34 +164,37 @@ class TrainerWordSimilarity4Optuna(TrainerWordSimilarity):
             device=device,
         )
         self.lr = trial.suggest_float("lr", 1e-10, 1e-1, log=True)
-        self.negative_samples = trial.suggest_categorical("negative_samples", [1, 2, 4, 8])
+        self.negative_samples = trial.suggest_categorical(
+            "negative_samples", [1, 2, 4, 8])
         self.margin = trial.suggest_float("margin", 1, 10)
 
         # If subsampling has been done earlier then word count must have been changed
         # This is an expected word count based on the subsampling prob parameters.
         if subsampling_prob != None:
             self.sampling = (
-                torch.min(torch.tensor(1.0).to(self.device), 1 - subsampling_prob.to(self.device))
+                torch.min(torch.tensor(1.0).to(self.device),
+                          1 - subsampling_prob.to(self.device))
                 * self.sampling
             )
         if model_mode == "CBOW":
-            self.add_negatives = RandomNegativeCBOW(self.negative_samples, self.sampling)
+            self.add_negatives = RandomNegativeCBOW(
+                self.negative_samples, self.sampling)
         elif model_mode == "SkipGram":
-            self.add_negatives = RandomNegativeSkipGram(self.negative_samples, self.sampling)
-
+            self.add_negatives = RandomNegativeSkipGram(
+                self.negative_samples, self.sampling)
 
     def train_model(
-            self, trial, model, num_epochs=100, path="./checkpoints",
-            save_model=False, write_summary=False,
-        ):
-        ## Setting up the optimizers
+        self, trial, model, num_epochs=100, path="./checkpoints",
+        save_model=False, write_summary=False,
+    ):
+        # Setting up the optimizers
         parameters = filter(lambda p: p.requires_grad, model.parameters())
         optimizer = torch.optim.Adam(params=parameters, lr=self.lr)
         metric = {}
         eval_dataset = "En-Simlex-999.Txt" if self.lang == "en" else "Jwsan-1400-Asso.Tsv"
         best_simlex_ws = -1
 
-        ## Setting Up the loss function
+        # Setting Up the loss function
         for epoch in range(num_epochs):
             start_time = time.time()
             epoch_loss = []
@@ -262,7 +268,8 @@ class TrainerWordSimilarity4Optuna(TrainerWordSimilarity):
                             epoch + 1, np.mean(epoch_loss), simlex_ws, i
                         )
                     )
-                    logzero.logger.info(f"Epoch {epoch+1}  | Step:{i}  | Loss: {np.mean(epoch_loss)}| spearmanr: {simlex_ws}")
+                    logzero.logger.info(
+                        f"Epoch {epoch+1}  | Step:{i}  | Loss: {np.mean(epoch_loss)}| spearmanr: {simlex_ws}")
 
                     model.train()
 
@@ -270,7 +277,8 @@ class TrainerWordSimilarity4Optuna(TrainerWordSimilarity):
             metric.update({"epoch_loss": np.mean(epoch_loss)})
 
             model.eval()
-            ws_metric = self.model_eval(model)  # This ws_metric contains correlations
+            # This ws_metric contains correlations
+            ws_metric = self.model_eval(model)
 
             # Update the metric
             metric.update(ws_metric)
@@ -284,7 +292,8 @@ class TrainerWordSimilarity4Optuna(TrainerWordSimilarity):
                     epoch + 1, loss, simlex_ws
                 )
             )
-            logzero.logger.info(f"Epoch {epoch+1} | Loss: {loss}| spearmanr: {simlex_ws}")
+            logzero.logger.info(
+                f"Epoch {epoch+1} | Loss: {loss}| spearmanr: {simlex_ws}")
 
             # 枝刈りを行うか判断
             trial.report(loss, step=epoch)
@@ -292,7 +301,6 @@ class TrainerWordSimilarity4Optuna(TrainerWordSimilarity):
                 raise optuna.exceptions.TrialPruned()
 
         return loss, simlex_ws
-
 
 
 # Loss func
