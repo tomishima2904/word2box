@@ -24,10 +24,10 @@ from language_modeling_with_boxes.models import \
 from language_modeling_with_boxes.train.Trainer import TrainerWordSimilarity
 from language_modeling_with_boxes.train.negative_sampling import \
     RandomNegativeCBOW, RandomNegativeSkipGram
-from utils import file_handlers as fh
 
 parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.append(parent_dir)
+from utils import file_handlers as fh
 
 
 CONFIG = {
