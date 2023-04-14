@@ -13,10 +13,10 @@ services:
       context: .
       dockerfile: Dockerfile
       network: host
-      shm_size: 50gb
+      shm_size: 80gb
     volumes:
       - /mnt/tomishima2904/word2box:/mnt/tomishima2904/word2box
-      - /wort/tomishima2904/word2box:/work/tomishima2904/word2box
+      - /work/tomishima2904/word2box:/work/tomishima2904/word2box
     ports:
       - '4415:4415'
     stdin_open: true
